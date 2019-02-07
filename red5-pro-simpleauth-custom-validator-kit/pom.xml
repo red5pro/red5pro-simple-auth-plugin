@@ -232,26 +232,6 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>buildnumber-maven-plugin</artifactId>
-                <version>1.4</version>
-                <executions>
-                    <execution>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>create</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <doCheck>false</doCheck>
-                    <doUpdate>false</doUpdate>
-                    <!-- Use 7 available chars from git commit -->
-                    <shortRevisionLength>7</shortRevisionLength>
-                    <scmBranchPropertyName>buildScmBranch</scmBranchPropertyName>
-                </configuration>
-            </plugin>
-            <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>2.6</version>
                 <configuration>
@@ -264,63 +244,51 @@
                 </configuration>
             </plugin>
             <plugin>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.19.1</version>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <extensions>true</extensions>
+            </plugin>
+            <!-- any other plugins -->
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
                 <configuration>
-                    <!-- https://maven.apache.org/surefire/maven-surefire-plugin/examples/skipping-test.html -->
-                    <skipTests>${maven.test.skip}</skipTests>
-                    <!--                        <forkCount>1</forkCount>
-                    <reuseForks>false</reuseForks>
-                    <argLine>-Xms512m -Xmx1024m -server -XX:+UseParallelGC -Xverify:none</argLine>
-                    <shutdown>kill</shutdown>                        -->
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.felix</groupId>
-                    <artifactId>maven-bundle-plugin</artifactId>
-                    <extensions>true</extensions>
-                </plugin>
-                <!-- any other plugins -->
-                <plugin>
-                    <artifactId>maven-assembly-plugin</artifactId>
-                    <executions>
-                        <execution>
-                            <phase>package</phase>
-                            <goals>
-                                <goal>single</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                    <configuration>
-                        <descriptorRefs>
-                            <descriptorRef>jar-with-dependencies</descriptorRef>
-                        </descriptorRefs>
-                    </configuration>
-                </plugin>
-                <!-- Project http://code.revelc.net/formatter-maven-plugin/ -->
-                <plugin>
-                    <groupId>net.revelc.code.formatter</groupId>
-                    <artifactId>formatter-maven-plugin</artifactId>
-                    <version>2.7.0</version>
-                    <executions>
-                        <execution>
-                            <goals>
-                                <goal>format</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                    <configuration>
-                        <configFile>../Red5Pro-formatter.xml</configFile>
-                        <!-- Enforce line-feed (linux,mac) line endings att -->
-                        <lineEnding>LF</lineEnding>
-                        <!-- Exclude xml and props files -->
-                        <excludes>
-                            <exclude>**/*.xml</exclude>
-                            <exclude>**/*.html</exclude>
-                            <exclude>**/*.properties</exclude>
-                        </excludes>
-                    </configuration>
-                </plugin>
-            </plugins>
-        </build>
-    </project>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+            </plugin>
+            <!-- Project http://code.revelc.net/formatter-maven-plugin/ -->
+            <plugin>
+                <groupId>net.revelc.code.formatter</groupId>
+                <artifactId>formatter-maven-plugin</artifactId>
+                <version>2.7.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>format</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <configFile>../Red5Pro-formatter.xml</configFile>
+                    <!-- Enforce line-feed (linux,mac) line endings att -->
+                    <lineEnding>LF</lineEnding>
+                    <!-- Exclude xml and props files -->
+                    <excludes>
+                        <exclude>**/*.xml</exclude>
+                        <exclude>**/*.html</exclude>
+                        <exclude>**/*.properties</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

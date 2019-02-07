@@ -21,12 +21,64 @@ This document follows up with the process of using the maven template to build, 
 ## SimpleAuth DEPENDENCY
 
 ### Maven
+Add the red5pro repository to your maven `settings.xml` file to allow it to resolve dependency. Full settings file example below:
 ```xml
-<dependency>
-    <groupId>com.red5pro</groupId>
-    <artifactId>red5pro-simple-auth</artifactId>
-    <version>5.6.5901</version>
-</dependency>
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.1.0 http://maven.apache.org/xsd/settings-1.1.0.xsd" xmlns="http://maven.apache.org/SETTINGS/1.1.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <servers>
+    <server>
+      <username>${security.getCurrentUsername()}</username>
+      <password>${security.getEscapedEncryptedPassword()!"*** Insert encrypted password here ***"}</password>
+      <id>central</id>
+    </server>
+    <server>
+      <username>${security.getCurrentUsername()}</username>
+      <password>${security.getEscapedEncryptedPassword()!"*** Insert encrypted password here ***"}</password>
+      <id>snapshots</id>
+    </server>
+  </servers>
+  <profiles>
+    <profile>
+      <repositories>
+        <repository>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+          <id>central</id>
+          <name>libs-release</name>
+          <url>https://red5pro.jfrog.io/red5pro/libs-release</url>
+        </repository>
+        <repository>
+          <snapshots />
+          <id>snapshots</id>
+          <name>libs-snapshot</name>
+          <url>https://red5pro.jfrog.io/red5pro/libs-snapshot</url>
+        </repository>
+      </repositories>
+      <pluginRepositories>
+        <pluginRepository>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+          <id>central</id>
+          <name>plugins-release</name>
+          <url>https://red5pro.jfrog.io/red5pro/plugins-release</url>
+        </pluginRepository>
+        <pluginRepository>
+          <snapshots />
+          <id>snapshots</id>
+          <name>plugins-release</name>
+          <url>https://red5pro.jfrog.io/red5pro/plugins-release</url>
+        </pluginRepository>
+      </pluginRepositories>
+      <id>artifactory</id>
+    </profile>
+  </profiles>
+  <activeProfiles>
+    <activeProfile>artifactory</activeProfile>
+  </activeProfiles>
+</settings>
 ```
 
 ### Local install `simple-auth-plugin` dependency
@@ -52,19 +104,10 @@ Update the pom.xml of the `custom-validator` project with the proper dependency 
 <dependency>
     <groupId>com.red5pro</groupId>
     <artifactId>red5pro-simple-auth</artifactId>
-    <version>{simple-auth-plugin-version}</version>
-</dependency>
-```
-
-**Example:**
-
-```xml
-<dependency>
-    <groupId>com.red5pro</groupId>
-    <artifactId>red5pro-simple-auth</artifactId>
     <version>5.6.5901</version>
 </dependency>
 ```
+
 
 > Make sure the version used in the pom matches the version that was installed as a dependency.
 
