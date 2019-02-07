@@ -1,0 +1,6 @@
+{
+  "resources": [
+    "src/main/resources/simple-auth-plugin.credentials",
+    "src/main/resources/simple-auth-plugin.properties"
+  ]
+}

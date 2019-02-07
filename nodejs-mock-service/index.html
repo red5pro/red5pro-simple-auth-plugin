@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Mock NodeJS service</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <meta content="width=device-width, initial-scale=1, user-scalable=no" name="viewport">
+  </head>
+  <body>
+    <div id="app">
+		<p> Validate streaming credentials </p>
+		<form method="post" action="/validateCredentials">
+		  <input id="type" name="type" placeholder="type" autocomplete="off" />
+		  <br>
+		  <input id="username" name="username" placeholder="username" autocomplete="off" />
+		  <br>
+		  <input id="password" name="password" placeholder="password" autocomplete="off" />
+		  <br>
+		  <input id="streamID" name="streamID" placeholder="streamID" autocomplete="off" />
+		  <br>
+		  <button>Send</button>
+		</form>
+		<p> Invalidate streaming credentials</p>
+		<form method="post" action="/invalidateCredentials">
+		  <input id="username" name="username" placeholder="username" autocomplete="off" />
+		  <br>
+		  <input id="password" name="password" placeholder="password" autocomplete="off" />
+		  <br>
+		  <input id="streamID" name="streamID" placeholder="streamID" autocomplete="off" />
+		  <br>
+		  <button>Send</button>
+		</form>
+    </div>
+  </body>
+</html>
