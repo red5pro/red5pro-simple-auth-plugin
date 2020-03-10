@@ -146,18 +146,22 @@ public class AuthenticatorProvider {
 		rtmpAuthenticator.setDataSource(validator);
 
 		rtspAuthenticator = new RTSPAuthenticator();
-		rtspAuthenticator.setDataSource(validator);
+		configure(rtspAuthenticator);
 
 		webRtcAuthenticator = new RTCAuthenticator();
-		webRtcAuthenticator.setDataSource(validator);
+		configure(webRtcAuthenticator);
 
 		grumpyAuthenticator = new BlockerAuthenticator();
-		grumpyAuthenticator.setDataSource(validator);
+		configure(grumpyAuthenticator);
 
 		happyAuthenticator = new PassThruAuthenticator();
-		happyAuthenticator.setDataSource(validator);
+		configure(happyAuthenticator);
 	}
 
+	private void configure(ISimpleAuthAuthenticator impl) {
+		impl.setAllowQueryParams(rtmpAcceptsQueryParamsEnabled);
+		impl.setDataSource(validator);
+	}
 	/**
 	 * Constructor for AuthenticatorProvider
 	 * 
