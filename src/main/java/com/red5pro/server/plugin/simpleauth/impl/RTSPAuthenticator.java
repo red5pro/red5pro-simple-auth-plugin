@@ -81,6 +81,41 @@ public class RTSPAuthenticator implements ISimpleAuthAuthenticator {
 	@Override
 	public boolean authenticate(IConnection connection, Object[] params) {
 		try {
+			if (allowQueryParams) {
+				Map<String, Object> maps = connection.getConnectParams();
+
+				if (maps != null && maps.containsKey("queryString")) {
+					Map<String, Object> tork = new HashMap<String, Object>();
+					tork.putAll(maps);
+					String qs = maps.get("queryString").toString();
+					if (qs.startsWith("?")) {
+						qs = qs.substring(1);
+					}
+					String[] keyvals = qs.split("&");
+					String username = null;
+					String password = null;
+					for (String entry : keyvals) {
+						if (entry.contains("=")) {
+							String[] pair = entry.split("=");
+							if ("username".equals(pair[0].trim())) {
+								username = pair[1].trim();
+								tork.put("username", username);
+							} else if ("password".equals(pair[0].trim())) {
+								password = pair[1].trim();
+								tork.put("password", password);
+							}
+						}
+					}
+					if (username != null && password != null) {
+						Object[] rest = new Object[1];
+						rest[0] = tork;
+						if (source.onConnectAuthenticate(username, password, rest)) {
+							return true;
+						}
+					}
+				}
+			}
+
 			if (params.length == 0 || params[0] == null)
 				throw new Exception("Missing connection parameter(s)");
 
