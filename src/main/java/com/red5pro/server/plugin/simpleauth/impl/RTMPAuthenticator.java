@@ -151,8 +151,13 @@ public class RTMPAuthenticator implements ISimpleAuthAuthenticator {
 					// we wont look at arguments at all if {allowQueryParams} is enabled
 					Map<String, Object> map = getParametersMap(connection.getConnectParams());
 
+					// Handling transcoder
+					if (map.containsKey("swfUrl") && map.get("swfUrl").equals("app:/Red5-StreamProxy.swf")) {
+						return true;
+					}
 					// Handling a cluster-restreamer connection
-					if (map.containsKey("cluster-restreamer-context") && map.containsKey("cluster-restreamer-name")) {
+					else if (map.containsKey("cluster-restreamer-context")
+							&& map.containsKey("cluster-restreamer-name")) {
 						if (map.containsKey("restreamer")) {
 							username = "cluster-restreamer";
 							password = String.valueOf(map.get("restreamer"));
