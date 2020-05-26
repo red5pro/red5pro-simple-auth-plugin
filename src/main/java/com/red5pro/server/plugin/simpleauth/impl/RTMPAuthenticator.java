@@ -152,12 +152,13 @@ public class RTMPAuthenticator implements ISimpleAuthAuthenticator {
 					Map<String, Object> map = getParametersMap(connection.getConnectParams());
 
 					// Handling transcoder
-					if (map.containsKey("swfUrl") && map.get("swfUrl").equals("app:/Red5-StreamProxy.swf")) {
+					if (map.containsKey("swfUrl") && map.get("swfUrl") != null
+							&& map.get("swfUrl").equals("app:/Red5-StreamProxy.swf")) {
 						return true;
 					}
 					// Handling a cluster-restreamer connection
 					else if (map.containsKey("cluster-restreamer-context")
-							&& map.containsKey("cluster-restreamer-name")) {
+							|| map.containsKey("cluster-restreamer-name")) {
 						if (map.containsKey("restreamer")) {
 							username = "cluster-restreamer";
 							password = String.valueOf(map.get("restreamer"));

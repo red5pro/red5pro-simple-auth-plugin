@@ -54,7 +54,9 @@ public class Utils {
 		String capabilities = String.valueOf(map.get("capabilities"));
 		String flashVer = String.valueOf(map.get("flashVer"));
 
-		if (capabilities.equals("15.0") && objectEncoding.equals("0.0") && flashVer.equals("WIN 11,2,202,235")) {
+		if (map.containsKey("cluster-restreamer-name")) {
+			return true;
+		} else if (capabilities.equals("15.0") && objectEncoding.equals("0.0") && flashVer.equals("WIN 11,2,202,235")) {
 			return true;
 		}
 
