@@ -181,7 +181,7 @@ public class CustomSourceValidator implements IAuthenticationValidator {
 The last parameter of the method `onConnectAuthenticate`will contain connection parameters if a RTMP client passed parameters as array , otherwise the first object of the array will contain a java Map, if the RTMP client pass parameters in query string. For RTSP and RTC clients also the first object of the array will contain a java Map. You will need to iterate over the map to get the parameters and their values as key-value pairs.
 
 ### STEP 2
-Before you can configure the webapp to use your custom validator, it must be deployed on the server. Package your validator classes as a `jar` and deploy the `jar` in either the webapp's lib directory (`RED5_HOME/webapps/{app}WEB-INF/lib`), or in the server's lib directory (`RED5_HOME/lib`).
+Before you can configure the webapp to use your custom validator, it must be deployed on the server. Package your validator classes as a `jar` and deploy the `jar` in either the webapp's lib directory (`RED5_HOME/webapps/{app}/WEB-INF/lib`), or in the server's lib directory (`RED5_HOME/lib`).
 
 ### STEP 3
 Instantiate your custom validator using spring in `red5-web.xml` and pass it as a reference to the `simpleAuthSecurity` configuration bean.
