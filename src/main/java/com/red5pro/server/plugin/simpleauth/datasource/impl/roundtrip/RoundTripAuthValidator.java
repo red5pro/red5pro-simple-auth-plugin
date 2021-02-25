@@ -233,7 +233,8 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 					connection.setAttribute("token", token);
 
 					logger.debug("Parameter 'token' stored on client connection {}", connection);
-				} else if (clientTokenRequired && !username.equals("cluster-restreamer")) {
+				} else if (clientTokenRequired && !username.equals("cluster-restreamer")
+						&& !username.equals("pass-through-publisher")) {
 					logger.error("Client 'token' is required but was not provided by connection {}.", connection);
 					return false;
 				}
@@ -267,6 +268,38 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 */
 	private boolean validateClusterReStreamer(String password) {
 		// check that password match with cluster password
+		String clusterPassword = getClusterPassword();
+		if (clusterPassword != null) {
+			return password.equals(clusterPassword);
+		}
+
+		return false;
+	}
+
+	/**
+	 * Special method to help validate pass-through publishers using the cluster
+	 * password
+	 *
+	 * @param password
+	 *            The provided password to validate
+	 * @return Boolean true if validation is successful, otherwise false
+	 */
+	private boolean validatePassThroughPublisher(String password) {
+		// check that password match with cluster password
+		String clusterPassword = getClusterPassword();
+		if (clusterPassword != null) {
+			return password.equals(clusterPassword);
+		}
+
+		return false;
+	}
+
+	/**
+	 * Method to get the cluster password from conf/cluster.xml
+	 *
+	 * @return String password or null if the password was not found
+	 */
+	public String getClusterPassword() {
 		File file = new File(System.getProperty("red5.config_root") + "/cluster.xml");
 		DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
 		try {
@@ -275,21 +308,20 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 
 			Element pageElement = (Element) document.getElementsByTagName("beans").item(0);
 			NodeList result = pageElement.getElementsByTagName("property");
-			logger.info("length: " + result.getLength());
 
-			NamedNodeMap s = result.item(1).getAttributes();
-			if (s.item(1).getNodeValue().equals(password)) {
-				return true;
-			} else {
-				logger.error("wrong password supplied for cluster");
-				return false;
+			for (int i = 0; i < result.getLength(); i++) {
+				Element element = (Element) result.item(i);
+				if ("password".equals(element.getAttribute("name"))) {
+					return element.getAttribute("value");
+				}
 			}
 
 		} catch (Exception e) {
-			logger.error("It was not possible to validate the cluster password");
-			e.printStackTrace();
-			return false;
+			logger.error("Error while retrieving the cluster password", e);
 		}
+
+		logger.error("Cluster password not found");
+		return null;
 	}
 
 	/**
@@ -311,7 +343,9 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 		String type = "publisher";
 
 		if (password != null && username != null) {
-			if (!this.lazyAuth) {
+			if (username.equals("pass-through-publisher") && validatePassThroughPublisher(password)) {
+				return true;
+			} else if (!this.lazyAuth) {
 				try {
 					JsonObject result = authenticateOverHttp(type, username, password, token, stream);
 					boolean canStream = result.get("result").getAsBoolean();
@@ -587,9 +621,10 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	@Override
 	public void appDisconnect(IConnection conn) {
 
-		if (conn.hasAttribute("roletype") && conn.getStringAttribute("roletype").equals("publisher")
-				&& conn.hasAttribute("streamID") && conn.hasAttribute("username") && conn.hasAttribute("password")) {
-
+		if (!conn.hasAttribute("appDisconnect-already-processed") && conn.hasAttribute("roletype")
+				&& conn.getStringAttribute("roletype").equals("publisher") && conn.hasAttribute("streamID")
+				&& conn.hasAttribute("username") && conn.hasAttribute("password")) {
+			conn.setAttribute("appDisconnect-already-processed", true);
 			String username = conn.getStringAttribute("username");
 			String password = conn.getStringAttribute("password");
 			String streamID = conn.getStringAttribute("streamID");
