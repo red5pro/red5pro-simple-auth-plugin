@@ -37,9 +37,9 @@
         <maven.build.timestamp.format>MM.dd.yyyy HH:mm</maven.build.timestamp.format>
         <timestamp>${maven.build.timestamp}</timestamp>
         <red5pro-common.version>5.3.16</red5pro-common.version>
-        <red5.version>1.1.0</red5.version>
+        <red5.version>1.2.6</red5.version>
         <mina.version>[2.0.21,)</mina.version>
-        <spring.version>[5.1.7,)</spring.version>
+        <spring.version>[5.3.5,)</spring.version>
         <httpcomponents.version>4.5.3</httpcomponents.version>
     </properties>
     <issueManagement>
