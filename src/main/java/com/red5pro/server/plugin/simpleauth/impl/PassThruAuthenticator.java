@@ -82,13 +82,11 @@ public class PassThruAuthenticator implements ISimpleAuthAuthenticator {
 
 	@Override
 	public void setAllowQueryParams(boolean allowQueryParams) {
-		// TODO Auto-generated method stub
 		this.allowQueryParams = allowQueryParams;
 	}
 
 	@Override
 	public boolean isAllowQueryParams() {
-		// TODO Auto-generated method stub
 		return allowQueryParams;
 	}
 

@@ -42,6 +42,7 @@
         <mina.version>[2.0.21,)</mina.version>
         <spring.version>[5.3.5,)</spring.version>
         <httpcomponents.version>[4.5.13,)</httpcomponents.version>
+        <javax.servlet.version>3.1.0</javax.servlet.version>
         <junit.version>[4.13.1,)</junit.version>
     </properties>
     <issueManagement>
@@ -292,10 +293,6 @@
                     <artifactId>commons-logging</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>org.quartz-scheduler</groupId>
-                    <artifactId>quartz</artifactId>
-                </exclusion>
-                <exclusion>
                     <groupId>org.apache.tika</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
@@ -341,10 +338,22 @@
             <version>${red5pro-common.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+            <version>${spring.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>${httpcomponents.version}</version>
             <scope>provided</scope>
         </dependency>
+		<dependency>
+		    <groupId>javax.servlet</groupId>
+		    <artifactId>javax.servlet-api</artifactId>
+		    <version>${javax.servlet.version}</version>
+		    <scope>compile</scope>
+		</dependency>        
     </dependencies>
 </project>
