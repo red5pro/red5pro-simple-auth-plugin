@@ -33,7 +33,6 @@ import java.util.concurrent.Executors;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -54,7 +53,6 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import com.google.gson.Gson;
@@ -225,6 +223,7 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 
 		if (rest.length == 1) {
 			if (rest[0] instanceof Map) {
+				@SuppressWarnings("unchecked")
 				Map<String, Object> map = (Map<String, Object>) rest[0];
 
 				// collect token if exists

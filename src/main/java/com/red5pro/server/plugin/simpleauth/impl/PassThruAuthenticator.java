@@ -45,6 +45,7 @@ public class PassThruAuthenticator implements ISimpleAuthAuthenticator {
 	/**
 	 * Logger
 	 */
+	@SuppressWarnings("unused")
 	private static Logger logger = LoggerFactory.getLogger(PassThruAuthenticator.class);
 
 	/**

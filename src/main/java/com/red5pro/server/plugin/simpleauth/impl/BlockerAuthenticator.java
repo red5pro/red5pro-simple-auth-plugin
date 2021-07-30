@@ -42,6 +42,7 @@ import com.red5pro.server.plugin.simpleauth.interfaces.ISimpleAuthAuthenticator;
  */
 public class BlockerAuthenticator implements ISimpleAuthAuthenticator {
 
+	@SuppressWarnings("unused")
 	private static Logger logger = LoggerFactory.getLogger(BlockerAuthenticator.class);
 
 	private IAuthenticationValidator source;
