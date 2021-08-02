@@ -23,6 +23,7 @@ import org.springframework.web.context.WebApplicationContext;
  * https://www.red5pro.com/docs/plugins/round-trip-auth/overview/
  *
  * Add to the applications web.xml
+ * 
  * <pre>
 	&lt;filter&gt;
 	    &lt;filter-name&gt;authServlet&lt;/filter-name&gt;
@@ -45,9 +46,11 @@ import org.springframework.web.context.WebApplicationContext;
  * @author Paul Gregoire
  */
 public class AuthServlet implements Filter {
-	
-    @SuppressWarnings("unused")
+
+	@SuppressWarnings("unused")
 	private static Logger log = LoggerFactory.getLogger(AuthServlet.class);
+
+	private volatile ApplicationContext appCtx;
 
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
@@ -62,33 +65,34 @@ public class AuthServlet implements Filter {
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
 		HttpServletResponse httpResponse = (HttpServletResponse) response;
 		// XXX should we check / expect any headers?
-        
-        // XXX check for user/passwd and / or just a token
-        String user = null, passwd = null, token = null;
-        Iterator<String> paramNames = httpRequest.getParameterNames().asIterator();
-        while (paramNames.hasNext()) {
-        	String paramName = paramNames.next();
-        	if ("token".equals(paramName)) {
-        		token = httpRequest.getParameter(paramName);
-        	} else if ("user".equals(paramName)) {
-            	user = httpRequest.getParameter(paramName);
-        	} else if ("passwd".equals(paramName)) {
-        		passwd = httpRequest.getParameter(paramName);
-        	}
-        }
-		if (token != null || (user != null && passwd != null)) {
-			// process token and / or u:p combo
-			
 
-			// XXX should we be looking for apps? validating that they exist?
-	        ApplicationContext appCtx = (ApplicationContext) request.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-	        // if theres no context then this is not running in a red5 app
-	        if (appCtx == null) {
-	            // return an error
-	        	httpResponse.sendError(500, "No application context found");
-	        }
-			
-			
+		// XXX check for user/passwd and / or just a token
+		String user = null, passwd = null, token = null;
+		Iterator<String> paramNames = httpRequest.getParameterNames().asIterator();
+		while (paramNames.hasNext()) {
+			String paramName = paramNames.next();
+			if ("token".equals(paramName)) {
+				token = httpRequest.getParameter(paramName);
+			} else if ("user".equals(paramName)) {
+				user = httpRequest.getParameter(paramName);
+			} else if ("passwd".equals(paramName)) {
+				passwd = httpRequest.getParameter(paramName);
+			}
+		}
+		// process token and / or u:p combo
+		if (token != null || (user != null && passwd != null)) {
+
+			if (appCtx == null) {
+				// XXX should we be looking for apps? validating that they exist?
+				appCtx = (ApplicationContext) request.getServletContext()
+						.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+				// if theres no context then this is not running in a red5 app
+				if (appCtx == null) {
+					// return an error
+					httpResponse.sendError(500, "No application context found");
+				}
+			}
+
 			chain.doFilter(request, response);
 		} else {
 			httpResponse.sendError(401, "Unauthorized request");

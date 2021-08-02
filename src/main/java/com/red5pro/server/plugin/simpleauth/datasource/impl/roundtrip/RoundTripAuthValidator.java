@@ -602,68 +602,52 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 
 	@Override
 	public boolean appStart(IScope app) {
-		// TODO Auto-generated method stub
 		return true;
 	}
 
 	@Override
 	public boolean appConnect(IConnection conn, Object[] params) {
-		// TODO Auto-generated method stub
 		return true;
 	}
 
 	@Override
 	public boolean appJoin(IClient client, IScope app) {
-		// TODO Auto-generated method stub
 		return true;
 	}
 
 	@Override
 	public void appLeave(IClient client, IScope app) {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
 	public void appStop(IScope app) {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
 	public boolean roomStart(IScope room) {
-		// TODO Auto-generated method stub
 		return true;
 	}
 
 	@Override
 	public boolean roomConnect(IConnection conn, Object[] params) {
-		// TODO Auto-generated method stub
 		return true;
 	}
 
 	@Override
 	public boolean roomJoin(IClient client, IScope room) {
-		// TODO Auto-generated method stub
 		return true;
 	}
 
 	@Override
 	public void roomDisconnect(IConnection conn) {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
 	public void roomLeave(IClient client, IScope room) {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
 	public void roomStop(IScope room) {
-		// TODO Auto-generated method stub
-
 	}
 
 	public String getValidateCredentialsEndPoint() {
