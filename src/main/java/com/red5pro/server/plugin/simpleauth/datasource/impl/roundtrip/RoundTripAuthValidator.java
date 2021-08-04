@@ -33,7 +33,6 @@ import java.util.concurrent.Executors;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -87,9 +86,60 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	private static Logger logger = LoggerFactory.getLogger(RoundTripAuthValidator.class);
 
 	/**
+	 * Username parameter name constant
+	 */
+	public static final String USERNAME = "username";
+
+	/**
+	 * Password parameter name constant
+	 */
+	public static final String PASSWORD = "password";
+
+	/**
 	 * Token parameter name constant
 	 */
 	public static final String TOKEN = "token";
+
+	/**
+	 * ConnectionResponseData parameter name constant. Used by clients to provide
+	 * additional data
+	 */
+	public static final String AUTHENTICATION_RESPONSE_DATA = "authenticationResponseData";
+
+	/**
+	 * StreamId parameter name constant
+	 */
+	public static final String STREAMID = "streamID";
+
+	/**
+	 * StreamId parameter name constant
+	 */
+	public static final String ROLE_TYPE = "roletype";
+
+	/**
+	 * StreamId parameter name constant
+	 */
+	public static final String URL = "url";
+
+	/**
+	 * StreamId parameter name constant
+	 */
+	public static final String SIGNED_URL = "signedURL";
+
+	/**
+	 * Result parameter name constant
+	 */
+	public static final String RESULT = "result";
+
+	/**
+	 * Publisher parameter name constant
+	 */
+	public static final String PUBLISHER = "publisher";
+
+	/**
+	 * Publisher parameter name constant
+	 */
+	public static final String SUBSCRIBER = "subscriber";
 
 	/**
 	 * Property to store validation endpoint path (relative to root)
@@ -215,9 +265,9 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 			return false;
 		}
 
-		// just store paramters as we will be using these later
-		connection.setAttribute("username", username);
-		connection.setAttribute("password", password);
+		// just store parameters as we will be using these later
+		connection.setAttribute(USERNAME, username);
+		connection.setAttribute(PASSWORD, password);
 
 		logger.debug("Parameters 'username' and 'password' stored on client connection! {}", connection);
 
@@ -226,11 +276,10 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 		if (rest.length == 1) {
 			if (rest[0] instanceof Map) {
 				Map<String, Object> map = (Map<String, Object>) rest[0];
-
 				// collect token if exists
 				if (map.containsKey(TOKEN)) {
 					token = String.valueOf(map.get(TOKEN));
-					connection.setAttribute("token", token);
+					connection.setAttribute(TOKEN, token);
 
 					logger.debug("Parameter 'token' stored on client connection {}", connection);
 				} else if (clientTokenRequired && !username.equals("cluster-restreamer")) {
@@ -247,7 +296,7 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 			if (rest.length >= 3) {
 				// expect token as third param
 				token = String.valueOf(rest[2]);
-				connection.setAttribute("token", token);
+				connection.setAttribute(TOKEN, token);
 				logger.debug("Parameter 'token' stored on client connection {}", connection);
 			} else if (clientTokenRequired && !username.equals("cluster-restreamer")) {
 				logger.error("Client 'token' is required but was not provided by connection {}.", connection);
@@ -305,25 +354,34 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 * @return Boolean true if validation is successful, otherwise false
 	 */
 	public boolean onPublishAuthenticate(IConnection conn, IScope scope, String stream) {
-		String username = conn.getStringAttribute("username");
-		String password = conn.getStringAttribute("password");
-		String token = (conn.hasAttribute("token")) ? conn.getStringAttribute("token") : "";
-		String type = "publisher";
+		String username = conn.getStringAttribute(USERNAME);
+		String password = conn.getStringAttribute(PASSWORD);
+		String token = (conn.hasAttribute(TOKEN)) ? conn.getStringAttribute(TOKEN) : "";
+		String type = PUBLISHER;
+		String contextPath = conn.getScope().getContextPath();
+		if (contextPath.charAt(0) == '/') {
+			contextPath = contextPath.substring(1);
+		}
 
 		if (password != null && username != null) {
 			if (!this.lazyAuth) {
 				try {
-					JsonObject result = authenticateOverHttp(type, username, password, token, stream);
-					boolean canStream = result.get("result").getAsBoolean();
+					JsonObject result = authenticateOverHttp(type, username, password, token, stream, contextPath);
+					boolean canStream = result.get(RESULT).getAsBoolean();
 					if (canStream) {
-						conn.setAttribute("roletype", type);
-						conn.setAttribute("streamID", stream);
+						conn.setAttribute(ROLE_TYPE, type);
+						conn.setAttribute(STREAMID, stream);
 
-						if (result.has("url")) {
-							String url = result.get("url").getAsString();
-							conn.setAttribute("signedURL", url);
+						if (result.has(URL)) {
+							String url = result.get(URL).getAsString();
+							conn.setAttribute(SIGNED_URL, url);
 						} else {
 							logger.debug("No Signed URL supplied");
+						}
+
+						if (result.has(AUTHENTICATION_RESPONSE_DATA)) {
+							String url = result.get(AUTHENTICATION_RESPONSE_DATA).getAsString();
+							conn.setAttribute(AUTHENTICATION_RESPONSE_DATA, url);
 						}
 					}
 					return canStream;
@@ -332,7 +390,8 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 					return false;
 				}
 			} else {
-				this.threadPoolExecutor.submit(new LazyAuthentication(conn, type, username, password, token, stream));
+				this.threadPoolExecutor
+						.submit(new LazyAuthentication(conn, type, username, password, token, stream, contextPath));
 				return true;
 			}
 		}
@@ -353,25 +412,33 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 * @return Boolean true if validation is successful, otherwise false
 	 */
 	public boolean onPlaybackAuthenticate(IConnection conn, IScope scope, String stream) {
-		String username = conn.getStringAttribute("username");
-		String password = conn.getStringAttribute("password");
-		String token = (conn.hasAttribute("token")) ? conn.getStringAttribute("token") : "";
-		String type = "subscriber";
+		String username = conn.getStringAttribute(USERNAME);
+		String password = conn.getStringAttribute(PASSWORD);
+		String token = (conn.hasAttribute(TOKEN)) ? conn.getStringAttribute(TOKEN) : "";
+		String type = SUBSCRIBER;
+		String contextPath = conn.getScope().getContextPath();
+		if (contextPath.charAt(0) == '/') {
+			contextPath = contextPath.substring(1);
+		}
 
 		if (password != null && username != null) {
 			if (username.equals("cluster-restreamer")) {
 				return validateClusterReStreamer(password);
 			} else if (!this.lazyAuth) {
 				try {
-					JsonObject result = authenticateOverHttp(type, username, password, token, stream);
-					boolean canStream = result.get("result").getAsBoolean();
+					JsonObject result = authenticateOverHttp(type, username, password, token, stream, contextPath);
+					boolean canStream = result.get(RESULT).getAsBoolean();
 					if (canStream) {
-						conn.setAttribute("roletype", type);
-						conn.setAttribute("streamID", stream);
+						conn.setAttribute(ROLE_TYPE, type);
+						conn.setAttribute(STREAMID, stream);
 
-						if (result.has("url")) {
-							String url = result.get("url").getAsString();
-							conn.setAttribute("signedURL", url);
+						if (result.has(URL)) {
+							String url = result.get(URL).getAsString();
+							conn.setAttribute(SIGNED_URL, url);
+						}
+						if (result.has(AUTHENTICATION_RESPONSE_DATA)) {
+							String url = result.get(AUTHENTICATION_RESPONSE_DATA).getAsString();
+							conn.setAttribute(AUTHENTICATION_RESPONSE_DATA, url);
 						}
 					}
 					return canStream;
@@ -380,7 +447,8 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 					return false;
 				}
 			} else {
-				this.threadPoolExecutor.submit(new LazyAuthentication(conn, type, username, password, token, stream));
+				this.threadPoolExecutor
+						.submit(new LazyAuthentication(conn, type, username, password, token, stream, contextPath));
 				return true;
 			}
 		}
@@ -404,7 +472,8 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 *
 	 * @return JsonObject JSON payload response from the remote server
 	 */
-	public JsonObject authenticateOverHttp(String type, String username, String password, String token, String stream) {
+	public JsonObject authenticateOverHttp(String type, String username, String password, String token, String stream,
+			String contextPath) {
 		JsonObject result = null;
 		CloseableHttpClient client = null;
 
@@ -415,6 +484,7 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 			data.setPassword(password);
 			data.setToken(token);
 			data.setStreamID(stream);
+			data.setScope(contextPath);
 
 			String json = gson.toJson(data);
 
@@ -474,7 +544,8 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 *
 	 * @return JsonObject JSON payload response from the remote server
 	 */
-	public JsonObject invalidateCredentialsOverHttp(String username, String password, String token, String stream) {
+	public JsonObject invalidateCredentialsOverHttp(String username, String password, String token, String stream,
+			String contextPath) {
 		JsonObject result = null;
 		CloseableHttpClient client = null;
 
@@ -484,6 +555,7 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 			data.setPassword(password);
 			data.setToken(token);
 			data.setStreamID(stream);
+			data.setScope(contextPath);
 
 			String json = gson.toJson(data);
 
@@ -529,17 +601,18 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 */
 	class LazyAuthentication implements Runnable {
 
-		String type, username, password, token, stream;
+		String type, username, password, token, stream, contextPath;
 		IConnection conn;
 
 		public LazyAuthentication(IConnection conn, String type, String username, String password, String token,
-				String stream) {
+				String stream, String contextPath) {
 			this.conn = conn;
 			this.type = type;
 			this.username = username;
 			this.password = password;
 			this.token = token;
 			this.stream = stream;
+			this.contextPath = contextPath;
 		}
 
 		@Override
@@ -547,12 +620,22 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 			boolean canStream = false;
 
 			try {
-				JsonObject result = authenticateOverHttp(type, username, password, token, stream);
-				canStream = result.get("result").getAsBoolean();
+				JsonObject result = authenticateOverHttp(type, username, password, token, stream, contextPath);
+				canStream = result.get(RESULT).getAsBoolean();
 				if (!canStream && conn.isConnected()) {
 					logger.warn("Closing connected client due to authentication failure");
 					conn.close();
+				} else {
+					if (result.has(URL)) {
+						String url = result.get(URL).getAsString();
+						conn.setAttribute(SIGNED_URL, url);
+					}
+					if (result.has(AUTHENTICATION_RESPONSE_DATA)) {
+						String url = result.get(AUTHENTICATION_RESPONSE_DATA).getAsString();
+						conn.setAttribute(AUTHENTICATION_RESPONSE_DATA, url);
+					}
 				}
+
 			} catch (Exception e) {
 				canStream = false;
 				e.printStackTrace();
@@ -587,16 +670,20 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	@Override
 	public void appDisconnect(IConnection conn) {
 
-		if (conn.hasAttribute("roletype") && conn.getStringAttribute("roletype").equals("publisher")
-				&& conn.hasAttribute("streamID") && conn.hasAttribute("username") && conn.hasAttribute("password")) {
+		if (conn.hasAttribute(ROLE_TYPE) && conn.getStringAttribute(ROLE_TYPE).equals("publisher")
+				&& conn.hasAttribute(STREAMID) && conn.hasAttribute(USERNAME) && conn.hasAttribute(PASSWORD)) {
 
-			String username = conn.getStringAttribute("username");
-			String password = conn.getStringAttribute("password");
-			String streamID = conn.getStringAttribute("streamID");
-			String token = conn.getStringAttribute("token");
+			String username = conn.getStringAttribute(USERNAME);
+			String password = conn.getStringAttribute(PASSWORD);
+			String streamID = conn.getStringAttribute(STREAMID);
+			String token = conn.getStringAttribute(TOKEN);
+			String contextPath = conn.getScope().getContextPath();
+			if (contextPath.charAt(0) == '/') {
+				contextPath = contextPath.substring(1);
+			}
 
 			if (invalidateEndPoint != null && invalidateEndPoint.length() > 3) {
-				invalidateCredentialsOverHttp(username, password, token, streamID);
+				invalidateCredentialsOverHttp(username, password, token, streamID, contextPath);
 			}
 		}
 	}

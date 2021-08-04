@@ -37,6 +37,8 @@ public class AuthData {
 
 	private String token;
 
+	private String scope;
+
 	public String getUsername() {
 		return username;
 	}
@@ -77,4 +79,11 @@ public class AuthData {
 		this.type = type;
 	}
 
+	public void setScope(String scope) {
+		this.scope = scope;
+	}
+
+	public String getScope() {
+		return scope;
+	}
 }
