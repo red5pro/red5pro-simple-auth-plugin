@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.red5pro</groupId>
     <artifactId>red5pro-simple-auth</artifactId>
-    <version>5.6.5901</version>
+    <version>9.0.0</version>
     <packaging>jar</packaging>
     <name>red5pro-simple-auth-plugin</name>
     <url>https://github.com/red5pro/red5pro-simple-auth-plugin</url>
@@ -32,15 +32,17 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <skipTests>true</skipTests>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>1.1</maven.compiler.source>
+        <maven.compiler.target>1.1</maven.compiler.target>
+        <java.release.level>11</java.release.level>
         <maven.build.timestamp.format>MM.dd.yyyy HH:mm</maven.build.timestamp.format>
         <timestamp>${maven.build.timestamp}</timestamp>
-        <red5pro-common.version>5.7.0</red5pro-common.version>
-        <red5.version>1.0.10-M7</red5.version>
-        <mina.version>[2.0.19,)</mina.version>
-        <spring.version>[4.3.18,)</spring.version>
-        <httpcomponents.version>4.5.3</httpcomponents.version>
+        <red5pro-common.version>9.1.0</red5pro-common.version>
+        <red5.version>1.2.8</red5.version>
+        <mina.version>[2.0.21,)</mina.version>
+        <spring.version>[5.3.5,)</spring.version>
+        <httpcomponents.version>[4.5.13,)</httpcomponents.version>
+        <junit.version>[4.13.1,)</junit.version>
     </properties>
     <issueManagement>
         <system>github</system>
@@ -67,12 +69,79 @@
         <defaultGoal>clean package</defaultGoal>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.0.0-M2</version>
+                <executions>
+                    <execution>
+                        <id>enforce-maven</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[1.11,)</version>
+                                </requireJavaVersion>
+                                <requireMavenVersion>
+                                    <version>[3.6.0,)</version>
+                                </requireMavenVersion>
+                            </rules>    
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.6.1</version>
+                <version>3.8.1</version>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <configuration>
+                            <!-- compile everything to ensure module-info contains right entries -->
+                            <release>${java.release.level}</release>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>base-compile</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <!-- recompile everything for target VM except the module-info.java -->
+                        <configuration>
+                            <excludes>
+                                <exclude>module-info.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                </executions>
+                <!-- defaults for compile and testCompile -->
                 <configuration>
-                    <fork>true</fork>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
+                    <!-- Only required when JAVA_HOME isn't at least Java 9 and when haven't configured the maven-toolchains-plugin -->
+                    <jdkToolchain>
+                        <version>11</version>
+                    </jdkToolchain>
+                    <verbose>true</verbose>
+                    <release>${java.release.level}</release>
+                </configuration>
+            </plugin>
+            <plugin>
+                <!-- https://maven.apache.org/guides/mini/guide-using-toolchains.html -->
+                <artifactId>maven-toolchains-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>toolchain</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <toolchains>
+                        <jdk>
+                            <version>[1.11,)</version>
+                        </jdk>
+                    </toolchains>
                 </configuration>
             </plugin>
             <plugin>
@@ -89,7 +158,7 @@
             </plugin>
             <plugin>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.10.4</version>
+                <version>3.2.0</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -118,6 +187,22 @@
                 </configuration>
             </plugin>
             <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.2.0</version>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Build-OS>${os.name} ${os.version}</Build-OS>
+                            <Build-Java>Java ${java.version}</Build-Java>
+                            <Build-Timestamp>${timestamp}</Build-Timestamp>
+                            <!-- Build number comes from git commit and is updated via profile -->
+                            <Build-Number>${buildNumber}</Build-Number>
+                            <Red5-Plugin-Main-Class>com.red5pro.server.plugin.simpleauth.SimpleAuthPlugin</Red5-Plugin-Main-Class>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>buildnumber-maven-plugin</artifactId>
                 <version>1.4</version>
@@ -138,25 +223,9 @@
                 </configuration>
             </plugin>
             <plugin>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>2.6</version>
-                <configuration>
-                    <archive>
-                        <manifestEntries>
-                            <Build-OS>${os.name} ${os.version}</Build-OS>
-                            <Build-Java>Java ${java.version}</Build-Java>
-                            <Build-Timestamp>${timestamp}</Build-Timestamp>
-                            <!-- Build number comes from git commit and is updated via profile -->
-                            <Build-Number>${buildNumber}</Build-Number>
-                            <Red5-Plugin-Main-Class>com.red5pro.server.plugin.simpleauth.SimpleAuthPlugin</Red5-Plugin-Main-Class>
-                        </manifestEntries>
-                    </archive>
-                </configuration>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
-                <version>3.0.1</version>
+                <version>4.2.1</version>
                 <extensions>true</extensions>
             </plugin>
             <!-- Project http://code.revelc.net/formatter-maven-plugin/ -->
@@ -200,6 +269,7 @@
             <groupId>org.red5</groupId>
             <artifactId>red5-server</artifactId>
             <version>${red5.version}</version>
+            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>org.red5</groupId>
@@ -240,6 +310,7 @@
             <groupId>org.red5</groupId>
             <artifactId>red5-server-common</artifactId>
             <version>${red5.version}</version>
+            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>*</groupId>
@@ -251,6 +322,7 @@
             <groupId>org.red5</groupId>
             <artifactId>red5-io</artifactId>
             <version>${red5.version}</version>
+            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>*</groupId>
@@ -275,27 +347,4 @@
             <scope>provided</scope>
         </dependency>
     </dependencies>
-<!--
-    <profiles>
-        <profile>
-            <id>release</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>sign-artifacts</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>sign</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
--->
 </project>
