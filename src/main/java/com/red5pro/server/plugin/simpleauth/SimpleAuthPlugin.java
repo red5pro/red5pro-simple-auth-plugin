@@ -37,13 +37,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 import org.red5.server.adapter.IApplication;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.IContext;
 import org.red5.server.api.listeners.IScopeListener;
-import org.red5.server.api.scope.IBasicScope;
 import org.red5.server.api.scope.IGlobalScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.scope.ScopeType;
@@ -130,12 +128,12 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	/**
 	 * Map to contain AuthenticatorProvider reference for each application scope
 	 */
-	private Map<String, AuthenticatorProvider> scopeAuthenticationProviders;
+	private Map<String, AuthenticatorProvider> scopeAuthenticationProviders = new HashMap<>();
 
 	/**
 	 * Map to contain IApplication reference for each application scope
 	 */
-	private Map<String, IApplication> appHandlerDelegates;
+	private Map<String, IApplication> appHandlerDelegates = new HashMap<>();
 
 	/**
 	 * Java bean name required to identify a auth plugin configuration in an
@@ -247,13 +245,6 @@ public class SimpleAuthPlugin extends Red5Plugin {
 			if (log.isDebugEnabled()) {
 				log.debug("allowedRtmpAgents {}", allowedRtmpAgents);
 			}
-
-			defaultAuthValidatorDataSource = configuration
-					.getProperty("simpleauth.default.defaultAuthValidatorDataSource", defaultAuthValidatorDataSource);
-			if (log.isDebugEnabled()) {
-				log.debug("defaultAuthValidatorDataSource {}", defaultAuthValidatorDataSource);
-			}
-
 			// Prepare default validator
 			Resource fileDataSource = getConfResource(context, defaultAuthValidatorDataSource);
 			if (!fileDataSource.exists()) {
@@ -288,7 +279,6 @@ public class SimpleAuthPlugin extends Red5Plugin {
 			defaultAuthProvider.setEnabled(defaultConfiguration.isActive());
 
 			// scope level auth provider lookup map
-			scopeAuthenticationProviders = new HashMap<>();
 			scanScopeForAuthOverrides();
 			log.debug("Simple Auth Plugin Ready");
 		} catch (Throwable t) {
@@ -299,8 +289,7 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	/**
 	 * Creates a new properties file.
 	 * 
-	 * @param props
-	 *            Properties to store
+	 * @param props    Properties to store
 	 * @param path
 	 * @param comments
 	 */
@@ -310,8 +299,8 @@ public class SimpleAuthPlugin extends Red5Plugin {
 		Path uri = Paths.get(String.format("%s/%s", confDir, path));
 		OutputStream os = null;
 		try {
-			os = Files.newOutputStream(uri, new OpenOption[]{StandardOpenOption.CREATE, StandardOpenOption.WRITE,
-					StandardOpenOption.TRUNCATE_EXISTING});
+			os = Files.newOutputStream(uri, new OpenOption[] { StandardOpenOption.CREATE, StandardOpenOption.WRITE,
+					StandardOpenOption.TRUNCATE_EXISTING });
 			log.debug("Creating configuration file {}", uri.toAbsolutePath());
 			props.store(os, comments);
 		} catch (IOException e) {
@@ -351,8 +340,6 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	 * attach itself to each application.
 	 */
 	private void scanScopeForAuthOverrides() {
-		appHandlerDelegates = new HashMap<>();
-
 		IScopeListener scopeListener = new IScopeListener() {
 			@Override
 			public void notifyScopeCreated(IScope scope) {
@@ -373,25 +360,10 @@ public class SimpleAuthPlugin extends Red5Plugin {
 
 			@Override
 			public void notifyScopeRemoved(IScope scope) {
-				final String scopeName = scope.getName();
-				// log.info("Scope removed {}", scopeName);
+				// log.info("Scope removed {}", scope.getName());
 				if (scope.getType() == ScopeType.APPLICATION) {
-					final MultiThreadedApplicationAdapter adapter = (MultiThreadedApplicationAdapter) scope
-							.getHandler();
-					// Deregister AuthenticatorProvider
-					if (scopeAuthenticationProviders.containsKey(scopeName)) {
-						@SuppressWarnings("unused")
-						AuthenticatorProvider provider = scopeAuthenticationProviders.remove(scopeName);
-						provider = null;
-					}
-					// Deregister IApplication delegate
-					if (appHandlerDelegates.containsKey(scopeName)) {
-						if (adapter != null) {
-							IApplication delegate = appHandlerDelegates.remove(scopeName);
-							adapter.removeListener(delegate);
-							delegate = null;
-						}
-					}
+					// clean up the authentication items in the give scope
+					cleanUp(scope);
 				}
 			}
 
@@ -401,29 +373,75 @@ public class SimpleAuthPlugin extends Red5Plugin {
 		/**********************************************************************/
 
 		log.debug("Setting handlers for apps that might have already started up");
-
 		Iterator<IGlobalScope> inter = server.getGlobalScopes();
 		while (inter.hasNext()) {
 			IGlobalScope gscope = inter.next();
-			Set<String> appSet = gscope.getBasicScopeNames(ScopeType.APPLICATION);
-			Iterator<String> setInter = appSet.iterator();
-			while (setInter.hasNext()) {
-				String sApp = setInter.next();
-				IBasicScope theApp = gscope.getBasicScope(ScopeType.APPLICATION, sApp);
-				IScope issc = (IScope) theApp;
+			gscope.getBasicScopeNames(ScopeType.APPLICATION).forEach(sApp -> {
+				IScope issc = (IScope) gscope.getBasicScope(ScopeType.APPLICATION, sApp);
 				IContext context = issc.getContext();
 				if (context.hasBean(BEAN_ID)) {
 					configureCustomContext(issc, context);
 				} else {
 					configureContext(issc, context);
 				}
-			}
+			});
 		}
 	}
 
 	@Override
 	public void doStop() throws Exception {
 		log.info("Stop plugin");
+	}
+
+	/**
+	 * Enable or disable a scope's authentication provider.
+	 * 
+	 * @param scopeName
+	 * @param enable
+	 */
+	public void enableAuthenticatorProvider(String scopeName, boolean enable) {
+		AuthenticatorProvider scopeAuthProvider = scopeAuthenticationProviders.get(scopeName);
+		if (scopeAuthProvider != null && scopeAuthProvider.isEnabled() != enable) {
+			scopeAuthProvider.setEnabled(enable);
+		}
+	}
+
+	/**
+	 * Returns whether or not a given scope's authentication provider is enabled.
+	 * 
+	 * @param scopeName
+	 * @return true if enabled and false otherwise
+	 */
+	public boolean isAuthenticatorProviderEnabled(String scopeName) {
+		AuthenticatorProvider scopeAuthProvider = scopeAuthenticationProviders.get(scopeName);
+		if (scopeAuthProvider != null) {
+			return scopeAuthProvider.isEnabled();
+		}
+		return false;
+	}
+
+	/**
+	 * Configure a scope's authentication provider, replacing any existing entry.
+	 * 
+	 * @param scopeName
+	 * @param configuration
+	 * @return true if configured and false otherwise
+	 */
+	public boolean configureAuthenticatorProvider(String scopeName, Properties configuration) {
+		// round-about way to locate our scope, but it works
+		Iterator<IGlobalScope> inter = server.getGlobalScopes();
+		while (inter.hasNext()) {
+			IGlobalScope gscope = inter.next();
+			IScope scope = (IScope) gscope.getBasicScope(ScopeType.APPLICATION, scopeName);
+			if (scope != null) {
+				// clean up existing entry
+				cleanUp(scope);
+				// configure the scope as specified
+				configureScope(scope, configuration);
+				break;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -438,8 +456,7 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	/**
 	 * Sets the string representing the configuration file name
 	 * 
-	 * @param configurationFile
-	 *            The file name to set
+	 * @param configurationFile The file name to set
 	 */
 	public void setConfigurationFile(String configurationFile) {
 		this.configurationFile = configurationFile;
@@ -625,6 +642,100 @@ public class SimpleAuthPlugin extends Red5Plugin {
 			}
 		} catch (Exception e) {
 			log.error("Error reading configuration override from {}", scopeName, e);
+		}
+	}
+
+	/**
+	 * Configures the specified scope with the supplied configuration.
+	 * 
+	 * @param scope
+	 * @param configuration
+	 */
+	private void configureScope(IScope scope, Properties configuration) {
+		final String scopeName = scope.getName();
+		log.debug("Configure scope {} with {}", scopeName, configuration);
+		boolean defaultActive = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.active", "false"));
+		this.defaultActive = defaultActive;
+		log.debug("default active {}", defaultActive);
+		defaultAuthValidatorDataSource = configuration.getProperty("simpleauth.default.defaultAuthValidatorDataSource");
+		log.debug("defaultAuthValidatorDataSource {}", defaultAuthValidatorDataSource);
+		boolean rtmpSecurityEnabled = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.rtmp"));
+			log.debug("rtmpSecurityEnabled {}", rtmpSecurityEnabled);
+		boolean rtspSecurityEnabled = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.rtsp"));
+			log.debug("rtspSecurityEnabled {}", rtspSecurityEnabled);
+		boolean rtcSecurityEnabled = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.rtc"));
+			log.debug("rtcSecurityEnabled {}", rtcSecurityEnabled);
+		boolean srtSecurityEnabled = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.srt"));
+			log.debug("srtSecurityEnabled {}", srtSecurityEnabled);
+		boolean mpegtsSecurityEnabled = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.mpegts"));
+			log.debug("mpegtsSecurityEnabled {}", mpegtsSecurityEnabled);
+		boolean httpSecurityEnabled = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.http"));
+			log.debug("httpSecurityEnabled {}", httpSecurityEnabled);
+		boolean wsSecurityEnabled = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.ws"));
+			log.debug("wsSecurityEnabled {}", wsSecurityEnabled);
+		boolean rtmpAllowQueryParams = Boolean
+				.parseBoolean(configuration.getProperty("simpleauth.default.rtmp.queryparams"));
+			log.debug("rtmpAllowQueryParams {}", rtmpAllowQueryParams);
+		String allowedRtmpAgents = configuration.getProperty("simpleauth.default.rtmp.agents", "*");
+			log.debug("allowedRtmpAgents {}", allowedRtmpAgents);
+		// Prepare default validator
+		Resource fileDataSource = getConfResource(context, defaultAuthValidatorDataSource);
+		if (!fileDataSource.exists()) {
+			Properties credentials = new Properties();
+			// creates a new credentials file
+			addConfResource(credentials, defaultAuthValidatorDataSource,
+					"SimpleAuth Credentials\n[ Add username and password as key-value pair separated by a space (one per line) ]\nExample: testuser testpass\n");
+			// once the file is created, get the resource
+			fileDataSource = getConfResource(context, defaultAuthValidatorDataSource);
+		}
+		// default credentials file
+		try {
+			defaultAuthValidator = new Red5ProFileAuthenticationValidator(fileDataSource.getFile().getAbsolutePath());
+		} catch (IOException e) {
+			
+		}
+		defaultAuthValidator.initialize();
+		// default configuration
+		defaultConfiguration = new Configuration();
+		defaultConfiguration.setValidator(defaultAuthValidator);
+		defaultConfiguration.setRtmp(rtmpSecurityEnabled);
+		defaultConfiguration.setRtsp(rtspSecurityEnabled);
+		defaultConfiguration.setRtc(rtcSecurityEnabled);
+		defaultConfiguration.setSrt(srtSecurityEnabled);
+		defaultConfiguration.setMpegts(mpegtsSecurityEnabled);
+		defaultConfiguration.setHttp(httpSecurityEnabled);
+		defaultConfiguration.setWs(wsSecurityEnabled);
+		defaultConfiguration.setRtmpAllowQueryParamsEnabled(rtmpAllowQueryParams);
+		defaultConfiguration.setAllowedRtmpAgents(allowedRtmpAgents);
+		defaultConfiguration.setActive(defaultActive);
+		// prepare default authentication provider
+		defaultAuthProvider = new AuthenticatorProvider(defaultConfiguration);
+		defaultAuthProvider.initialize();
+		defaultAuthProvider.setEnabled(defaultConfiguration.isActive());
+	}
+
+	/**
+	 * Cleans up a scope; removing delegate, provider, etc...
+	 * 
+	 * @param scope
+	 */
+	private void cleanUp(IScope scope) {
+		final String scopeName = scope.getName();
+		log.debug("Cleaning up scope {}", scopeName);
+		final MultiThreadedApplicationAdapter adapter = (MultiThreadedApplicationAdapter) scope.getHandler();
+		// Deregister AuthenticatorProvider
+		if (scopeAuthenticationProviders.containsKey(scopeName)) {
+			@SuppressWarnings("unused")
+			AuthenticatorProvider provider = scopeAuthenticationProviders.remove(scopeName);
+			provider = null;
+		}
+		// Deregister IApplication delegate
+		if (appHandlerDelegates.containsKey(scopeName)) {
+			if (adapter != null) {
+				IApplication delegate = appHandlerDelegates.remove(scopeName);
+				adapter.removeListener(delegate);
+				delegate = null;
+			}
 		}
 	}
 
