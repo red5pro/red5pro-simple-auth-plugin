@@ -36,7 +36,7 @@ public interface IAuthenticationValidator {
 
 	/**
 	 * This method is triggered when a new instance is created via bean declaration
-	 * in the <tt>red5-web.xml</tt> file of the web application.
+	 * in the <pre>red5-web.xml</pre> file of the web application.
 	 */
 	void initialize();
 
@@ -63,4 +63,5 @@ public interface IAuthenticationValidator {
 	 * @return true to accept the connection or false to reject it.
 	 */
 	boolean onConnectAuthenticate(String username, String password, Object[] rest);
+
 }

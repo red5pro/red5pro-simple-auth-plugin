@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.RoundTripAuthValidator;
 
 /**
- * This class implements the <tt>IStreamPlaybackSecurity</tt> interface to
+ * This class implements the <pre>IStreamPlaybackSecurity</pre> interface to
  * intercept stream subscribe action. The implementation captures necessary
  * playback request params and passes them to remote server via the
  * `RoundTripAuthValidator` class for authentication.

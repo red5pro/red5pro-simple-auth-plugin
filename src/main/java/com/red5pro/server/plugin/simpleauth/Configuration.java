@@ -33,7 +33,7 @@ import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
  * using the different properties.
  * 
  * You can create your own custom validator and pass it to the plugin via the
- * <tt>Configuration</tt>. To know more about creating a custom validator,
+ * <pre>Configuration</pre>. To know more about creating a custom validator,
  * extending the plugin, configurations and more see <a href=
  * "https://www.red5pro.com/docs/server/authplugin.html#plugin-configuration">Documentation</a>.
  * 

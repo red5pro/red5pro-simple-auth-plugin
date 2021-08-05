@@ -60,12 +60,12 @@ import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
  * class extends the Red5Plugin to implement necessary plugin lifecycle methods.
  * 
  * The logic scans each application on the server startup to locate the
- * <tt>simpleAuthSecurity</tt> java bean which represents the configuration
+ * <pre>simpleAuthSecurity</pre> java bean which represents the configuration
  * object for the plugin.The plugin attaches itself dynamically to each scope
  * where the configuration is defined.
  * 
  * Application defines global properties which are overridden via the
- * <tt>Configuration</tt> object specified in each application via. To know more
+ * <pre>Configuration</pre> object specified in each application via. To know more
  * about the simple auth plugin see <a href=
  * "https://www.red5pro.com/docs/server/authplugin.html">Documentation</a>.
  * 

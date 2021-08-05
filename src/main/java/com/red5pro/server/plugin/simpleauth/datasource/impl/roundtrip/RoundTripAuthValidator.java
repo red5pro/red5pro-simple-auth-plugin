@@ -66,8 +66,8 @@ import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
 
 /**
  * This class is a sample implementation of the
- * <tt>IAuthenticationValidator</tt> interface. It is meant to serve as a
- * default placeholder and an example for a <tt>IAuthenticationValidator</tt>
+ * <pre>IAuthenticationValidator</pre> interface. It is meant to serve as a
+ * default placeholder and an example for a <pre>IAuthenticationValidator</pre>
  * implementation. The implementation has access to your data source which
  * provides a means to validate credentials and other parameters.
  *
@@ -78,11 +78,6 @@ import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
  *
  */
 public class RoundTripAuthValidator implements IAuthenticationValidator, IApplication {
-
-	/**
-	 * Logger
-	 */
-	private static Logger logger = LoggerFactory.getLogger(RoundTripAuthValidator.class);
 
 	/**
 	 * Token parameter name constant
@@ -104,12 +99,12 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 * initially and validated in a parallel thread instead of blocking access for
 	 * authentication
 	 */
-	private boolean lazyAuth = false;
+	private boolean lazyAuth;
 
 	/**
 	 * Property to indicate whether `token` parameter is optional or mandatory
 	 */
-	private boolean clientTokenRequired = false;
+	private boolean clientTokenRequired;
 
 	/**
 	 * Red5 Context object. This is helpful in resolving resources on the file
@@ -125,7 +120,7 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	/**
 	 * Gson object for serializing/deserializing JSON
 	 */
-	private Gson gson;
+	private final Gson gson = new Gson();
 
 	/**
 	 * Defines the HTTP client timeout
@@ -175,15 +170,10 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 
 	@Override
 	public void initialize() {
-
 		logger.info("initialization part");
-
 		if (this.lazyAuth) {
 			threadPoolExecutor = Executors.newCachedThreadPool();
 		}
-
-		gson = new Gson();
-
 		if (adapter != null) {
 			adapter.registerStreamPublishSecurity(new PublishSecurity(this));
 			adapter.registerStreamPlaybackSecurity(new PlaybackSecurity(this));
@@ -253,7 +243,6 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 				return false;
 			}
 		}
-
 		return true;
 	}
 
