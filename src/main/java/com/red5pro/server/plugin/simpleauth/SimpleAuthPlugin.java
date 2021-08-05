@@ -41,6 +41,7 @@ import java.util.Set;
 
 import org.red5.server.adapter.IApplication;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
+import org.red5.server.api.IContext;
 import org.red5.server.api.listeners.IScopeListener;
 import org.red5.server.api.scope.IBasicScope;
 import org.red5.server.api.scope.IGlobalScope;
@@ -55,18 +56,28 @@ import org.springframework.core.io.Resource;
 import com.red5pro.server.plugin.simpleauth.datasource.impl.Red5ProFileAuthenticationValidator;
 import com.red5pro.server.plugin.simpleauth.impl.AuthenticatorProvider;
 import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
+
 /**
  * This class is the entry point of the simple auth plugin module. The plugin
  * class extends the Red5Plugin to implement necessary plugin lifecycle methods.
  * 
  * The logic scans each application on the server startup to locate the
- * <pre>simpleAuthSecurity</pre> java bean which represents the configuration
- * object for the plugin.The plugin attaches itself dynamically to each scope
- * where the configuration is defined.
+ * 
+ * <pre>
+ * simpleAuthSecurity
+ * </pre>
+ * 
+ * java bean which represents the configuration object for the plugin.The plugin
+ * attaches itself dynamically to each scope where the configuration is defined.
  * 
  * Application defines global properties which are overridden via the
- * <pre>Configuration</pre> object specified in each application via. To know more
- * about the simple auth plugin see <a href=
+ * 
+ * <pre>
+ * Configuration
+ * </pre>
+ * 
+ * object specified in each application via. To know more about the simple auth
+ * plugin see <a href=
  * "https://www.red5pro.com/docs/server/authplugin.html">Documentation</a>.
  * 
  * @author Rajdeep Rath
@@ -151,11 +162,14 @@ public class SimpleAuthPlugin extends Red5Plugin {
 				log.debug("Properties not found in conf, creating default configuration");
 				// Build default configuration
 				configuration.put("simpleauth.default.active", "false");
-				configuration.put("simpleauth.default.defaultAuthValidatorDataSource",
-						this.defaultAuthValidatorDataSource);
+				configuration.put("simpleauth.default.defaultAuthValidatorDataSource", defaultAuthValidatorDataSource);
 				configuration.put("simpleauth.default.rtmp", "true");
 				configuration.put("simpleauth.default.rtsp", "true");
 				configuration.put("simpleauth.default.rtc", "true");
+				configuration.put("simpleauth.default.srt", "true");
+				configuration.put("simpleauth.default.mpegts", "true");
+				configuration.put("simpleauth.default.http", "true");
+				configuration.put("simpleauth.default.ws", "true");
 				configuration.put("simpleauth.default.rtmp.queryparams", "true");
 				configuration.put("simpleauth.default.rtmp.agents", "*");
 				// creates a new configuration properties file
@@ -201,6 +215,27 @@ public class SimpleAuthPlugin extends Red5Plugin {
 				log.debug("rtcSecurityEnabled {}", rtcSecurityEnabled);
 			}
 
+			boolean srtSecurityEnabled = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.srt"));
+			if (log.isDebugEnabled()) {
+				log.debug("srtSecurityEnabled {}", srtSecurityEnabled);
+			}
+
+			boolean mpegtsSecurityEnabled = Boolean
+					.parseBoolean(configuration.getProperty("simpleauth.default.mpegts"));
+			if (log.isDebugEnabled()) {
+				log.debug("mpegtsSecurityEnabled {}", mpegtsSecurityEnabled);
+			}
+
+			boolean httpSecurityEnabled = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.http"));
+			if (log.isDebugEnabled()) {
+				log.debug("httpSecurityEnabled {}", httpSecurityEnabled);
+			}
+
+			boolean wsSecurityEnabled = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.ws"));
+			if (log.isDebugEnabled()) {
+				log.debug("wsSecurityEnabled {}", wsSecurityEnabled);
+			}
+
 			boolean rtmpAllowQueryParams = Boolean
 					.parseBoolean(configuration.getProperty("simpleauth.default.rtmp.queryparams"));
 			if (log.isDebugEnabled()) {
@@ -212,8 +247,8 @@ public class SimpleAuthPlugin extends Red5Plugin {
 				log.debug("allowedRtmpAgents {}", allowedRtmpAgents);
 			}
 
-			String defaultAuthValidatorDataSource = configuration.getProperty(
-					"simpleauth.default.defaultAuthValidatorDataSource", this.defaultAuthValidatorDataSource);
+			defaultAuthValidatorDataSource = configuration
+					.getProperty("simpleauth.default.defaultAuthValidatorDataSource", defaultAuthValidatorDataSource);
 			if (log.isDebugEnabled()) {
 				log.debug("defaultAuthValidatorDataSource {}", defaultAuthValidatorDataSource);
 			}
@@ -238,6 +273,10 @@ public class SimpleAuthPlugin extends Red5Plugin {
 			defaultConfiguration.setRtmp(rtmpSecurityEnabled);
 			defaultConfiguration.setRtsp(rtspSecurityEnabled);
 			defaultConfiguration.setRtc(rtcSecurityEnabled);
+			defaultConfiguration.setSrt(srtSecurityEnabled);
+			defaultConfiguration.setMpegts(mpegtsSecurityEnabled);
+			defaultConfiguration.setHttp(httpSecurityEnabled);
+			defaultConfiguration.setWs(wsSecurityEnabled);
 			defaultConfiguration.setRtmpAllowQueryParamsEnabled(rtmpAllowQueryParams);
 			defaultConfiguration.setAllowedRtmpAgents(allowedRtmpAgents);
 			defaultConfiguration.setActive(defaultActive);
@@ -259,8 +298,7 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	/**
 	 * Creates a new properties file.
 	 * 
-	 * @param props
-	 *            Properties to store
+	 * @param props    Properties to store
 	 * @param path
 	 * @param comments
 	 */
@@ -270,8 +308,8 @@ public class SimpleAuthPlugin extends Red5Plugin {
 		Path uri = Paths.get(String.format("%s/%s", confDir, path));
 		OutputStream os = null;
 		try {
-			os = Files.newOutputStream(uri, new OpenOption[]{StandardOpenOption.CREATE, StandardOpenOption.WRITE,
-					StandardOpenOption.TRUNCATE_EXISTING});
+			os = Files.newOutputStream(uri, new OpenOption[] { StandardOpenOption.CREATE, StandardOpenOption.WRITE,
+					StandardOpenOption.TRUNCATE_EXISTING });
 			log.debug("Creating configuration file {}", uri.toAbsolutePath());
 			props.store(os, comments);
 		} catch (IOException e) {
@@ -311,143 +349,42 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	 * attach itself to each application.
 	 */
 	private void scanScopeForAuthOverrides() {
-		appHandlerDelegates = new HashMap<String, IApplication>();
+		appHandlerDelegates = new HashMap<>();
 
 		IScopeListener scopeListener = new IScopeListener() {
 			@Override
 			public void notifyScopeCreated(IScope scope) {
-				// log.info("Scope created {}", scope.getName());
-
+				final String scopeName = scope.getName();
+				// log.info("Scope created {}", scopeName);
 				if (scope.getType() == ScopeType.APPLICATION) {
 					if (log.isDebugEnabled()) {
-						log.debug("Scanning scope {} for custom simple auth configuration", scope.getName());
+						log.debug("Scanning scope {} for custom simple auth configuration", scopeName);
 					}
-
-					if (scope.getContext().hasBean(BEAN_ID)) {
-						try {
-							Configuration simpleAuthCustom = (Configuration) scope.getContext().getBean(BEAN_ID);
-
-							if (log.isDebugEnabled()) {
-								log.debug("Custom configuration found at {}", scope.getName());
-								log.debug("Custom configuration security enabled {}", simpleAuthCustom.isActive());
-								log.debug("Custom configuration rtmp security {}", simpleAuthCustom.isRtmp());
-								log.debug("Custom configuration rtsp security {}", simpleAuthCustom.isRtsp());
-								log.debug("Custom configuration rtc security {}", simpleAuthCustom.isRtc());
-								log.debug("Custom configuration rtmp agents {}",
-										simpleAuthCustom.getAllowedRtmpAgents());
-								log.debug("Custom configuration rtmp url auth {}",
-										simpleAuthCustom.isRtmpAllowQueryParamsEnabled());
-								log.debug("Custom configuration validator {}", simpleAuthCustom.getValidator());
-							}
-
-							// App level plugin configuration
-							AuthenticatorProvider scopeAuthProvider = new AuthenticatorProvider();
-
-							scopeAuthProvider.setEnabled(simpleAuthCustom.isActive());
-
-							// if no custom validator defined use default else use custom
-							if (simpleAuthCustom.getValidator() != null)
-								scopeAuthProvider.setValidator(simpleAuthCustom.getValidator());
-							else
-								scopeAuthProvider.setValidator(defaultAuthValidator);
-
-							if (simpleAuthCustom.isRtmpUpdated())
-								scopeAuthProvider.setSecureRTMP(simpleAuthCustom.isRtmp());
-							else
-								scopeAuthProvider.setSecureRTMP(defaultConfiguration.isRtmp());
-
-							if (simpleAuthCustom.isRtspUpdated())
-								scopeAuthProvider.setSecureRTSP(simpleAuthCustom.isRtsp());
-							else
-								scopeAuthProvider.setSecureRTSP(defaultConfiguration.isRtsp());
-
-							if (simpleAuthCustom.isRtcUpdated())
-								scopeAuthProvider.setSecureRTC(simpleAuthCustom.isRtc());
-							else
-								scopeAuthProvider.setSecureRTC(defaultConfiguration.isRtc());
-
-							if (simpleAuthCustom.isRtmpAllowQueryParamsUpdated())
-								scopeAuthProvider.setRtmpAcceptsQueryParamsEnabled(
-										simpleAuthCustom.isRtmpAllowQueryParamsEnabled());
-							else
-								scopeAuthProvider.setRtmpAcceptsQueryParamsEnabled(
-										defaultConfiguration.isRtmpAllowQueryParamsEnabled());
-
-							if (simpleAuthCustom.isAllowedRtmpAgentsUpdated()
-									&& simpleAuthCustom.getAllowedRtmpAgents() != null
-									&& simpleAuthCustom.getAllowedRtmpAgents().length() > 2)
-								scopeAuthProvider.setAllowedRtmpAgents(simpleAuthCustom.getAllowedRtmpAgents());
-							else
-								scopeAuthProvider.setAllowedRtmpAgents(defaultConfiguration.getAllowedRtmpAgents());
-
-							// initialize the scope authenticator
-							scopeAuthProvider.initialize();
-
-							if (log.isDebugEnabled()) {
-								log.debug("Scope authenticator provider configuration");
-								log.debug("Scope configuration found at {}", scope.getName());
-								log.debug("Scope configuration security enabled {}", scopeAuthProvider.isEnabled());
-								log.debug("Scope configuration rtmp security {}", scopeAuthProvider.isSecureRTMP());
-								log.debug("Scope configuration rtsp security {}", scopeAuthProvider.isSecureRTSP());
-								log.debug("Scope configuration rtc security {}", scopeAuthProvider.isSecureRTC());
-								log.debug("Scope configuration rtmp agents {}",
-										scopeAuthProvider.getAllowedRtmpAgents());
-								log.debug("Scope configuration rtmp url auth {}",
-										scopeAuthProvider.isRtmpAcceptsQueryParamsEnabled());
-								log.debug("Scope configuration validator {}", scopeAuthProvider.getValidator());
-							}
-
-							// Register the custom auth provider configuration
-							MultiThreadedApplicationAdapter adapter = (MultiThreadedApplicationAdapter) scope
-									.getHandler();
-							if (adapter != null) {
-								log.debug("Registering application event handler for {}", scope.getName());
-								scopeAuthenticationProviders.put(scope.getName(), scopeAuthProvider);
-
-								IApplication delegate = new AppEventMonitor(scopeAuthProvider, scope);
-								appHandlerDelegates.put(scope.getName(), delegate);
-
-								adapter.addListener(delegate);
-							}
-						} catch (Exception e) {
-							log.error("Error reading configuration override from {}", scope.getName());
-							e.printStackTrace();
-						}
+					IContext context = scope.getContext();
+					if (context.hasBean(BEAN_ID)) {
+						configureCustomContext(scope, context);
 					} else {
-						log.debug("No custom override for scope {}", scope.getName());
-
-						// Register security on app unconditionally if default.active=true
-						MultiThreadedApplicationAdapter adapter = (MultiThreadedApplicationAdapter) scope.getHandler();
-						if (adapter != null && defaultActive) {
-							log.debug("Activating security automatically for scope {}", scope.getName());
-
-							log.debug("Registering application event handler for {}", scope.getName());
-							scopeAuthenticationProviders.put(scope.getName(), defaultAuthProvider);
-
-							IApplication delegate = new AppEventMonitor(defaultAuthProvider, scope);
-							appHandlerDelegates.put(scope.getName(), delegate);
-
-							adapter.addListener(delegate);
-						}
+						configureContext(scope, context);
 					}
 				}
 			}
 
 			@Override
 			public void notifyScopeRemoved(IScope scope) {
+				final String scopeName = scope.getName();
+				// log.info("Scope removed {}", scopeName);
 				if (scope.getType() == ScopeType.APPLICATION) {
+					final MultiThreadedApplicationAdapter adapter = (MultiThreadedApplicationAdapter) scope.getHandler();
 					// Deregister AuthenticatorProvider
-					if (scopeAuthenticationProviders.containsKey(scope.getName())) {
+					if (scopeAuthenticationProviders.containsKey(scopeName)) {
 						@SuppressWarnings("unused")
-						AuthenticatorProvider provider = scopeAuthenticationProviders.remove(scope.getName());
+						AuthenticatorProvider provider = scopeAuthenticationProviders.remove(scopeName);
 						provider = null;
 					}
-
 					// Deregister IApplication deletage
-					if (appHandlerDelegates.containsKey(scope.getName())) {
-						MultiThreadedApplicationAdapter adapter = (MultiThreadedApplicationAdapter) scope.getHandler();
+					if (appHandlerDelegates.containsKey(scopeName)) {
 						if (adapter != null) {
-							IApplication delegate = appHandlerDelegates.remove(scope.getName());
+							IApplication delegate = appHandlerDelegates.remove(scopeName);
 							adapter.removeListener(delegate);
 							delegate = null;
 						}
@@ -456,7 +393,6 @@ public class SimpleAuthPlugin extends Red5Plugin {
 			}
 
 		};
-
 		server.addListener(scopeListener);
 
 		/**********************************************************************/
@@ -472,113 +408,12 @@ public class SimpleAuthPlugin extends Red5Plugin {
 				String sApp = setInter.next();
 				IBasicScope theApp = gscope.getBasicScope(ScopeType.APPLICATION, sApp);
 				IScope issc = (IScope) theApp;
-
-				if (issc.getContext().hasBean(BEAN_ID)) {
-					log.debug("Scanning scope {} for custom configuration", issc.getName());
-
-					try {
-						Configuration simpleAuthCustom = (Configuration) issc.getContext().getBean(BEAN_ID);
-
-						if (log.isDebugEnabled()) {
-							log.debug("Custom configuration found at {}", issc.getName());
-							log.debug("Custom configuration security enabled {}", simpleAuthCustom.isActive());
-							log.debug("Custom configuration rtmp security {}", simpleAuthCustom.isRtmp());
-							log.debug("Custom configuration rtsp security {}", simpleAuthCustom.isRtsp());
-							log.debug("Custom configuration rtc security {}", simpleAuthCustom.isRtc());
-							log.debug("Custom configuration rtmp agents {}", simpleAuthCustom.getAllowedRtmpAgents());
-							log.debug("Custom configuration rtmp url auth {}",
-									simpleAuthCustom.isRtmpAllowQueryParamsEnabled());
-							log.debug("Custom configuration validator {}", simpleAuthCustom.getValidator());
-						}
-
-						// App level plugin configuration
-						AuthenticatorProvider scopeAuthProvider = new AuthenticatorProvider();
-
-						scopeAuthProvider.setEnabled(simpleAuthCustom.isActive());
-
-						// if no custom validator defined use default else use custom
-						if (simpleAuthCustom.getValidator() != null)
-							scopeAuthProvider.setValidator(simpleAuthCustom.getValidator());
-						else
-							scopeAuthProvider.setValidator(defaultAuthValidator);
-
-						if (simpleAuthCustom.isRtmpUpdated())
-							scopeAuthProvider.setSecureRTMP(simpleAuthCustom.isRtmp());
-						else
-							scopeAuthProvider.setSecureRTMP(defaultConfiguration.isRtmp());
-
-						if (simpleAuthCustom.isRtspUpdated())
-							scopeAuthProvider.setSecureRTSP(simpleAuthCustom.isRtsp());
-						else
-							scopeAuthProvider.setSecureRTSP(defaultConfiguration.isRtsp());
-
-						if (simpleAuthCustom.isRtcUpdated())
-							scopeAuthProvider.setSecureRTC(simpleAuthCustom.isRtc());
-						else
-							scopeAuthProvider.setSecureRTC(defaultConfiguration.isRtc());
-
-						if (simpleAuthCustom.isRtmpAllowQueryParamsUpdated())
-							scopeAuthProvider
-									.setRtmpAcceptsQueryParamsEnabled(simpleAuthCustom.isRtmpAllowQueryParamsEnabled());
-						else
-							scopeAuthProvider.setRtmpAcceptsQueryParamsEnabled(
-									defaultConfiguration.isRtmpAllowQueryParamsEnabled());
-
-						if (simpleAuthCustom.isAllowedRtmpAgentsUpdated()
-								&& simpleAuthCustom.getAllowedRtmpAgents() != null
-								&& simpleAuthCustom.getAllowedRtmpAgents().length() > 2)
-							scopeAuthProvider.setAllowedRtmpAgents(simpleAuthCustom.getAllowedRtmpAgents());
-						else
-							scopeAuthProvider.setAllowedRtmpAgents(defaultConfiguration.getAllowedRtmpAgents());
-
-						// initialize the scope authenticator
-						scopeAuthProvider.initialize();
-
-						if (log.isDebugEnabled()) {
-							log.debug("Scope authenticator provider configuration");
-							log.debug("Scope configuration found at {}", issc.getName());
-							log.debug("Scope configuration security enabled {}", scopeAuthProvider.isEnabled());
-							log.debug("Scope configuration rtmp security {}", scopeAuthProvider.isSecureRTMP());
-							log.debug("Scope configuration rtsp security {}", scopeAuthProvider.isSecureRTSP());
-							log.debug("Scope configuration rtc security {}", scopeAuthProvider.isSecureRTC());
-							log.debug("Scope configuration rtmp agents {}", scopeAuthProvider.getAllowedRtmpAgents());
-							log.debug("Scope configuration rtmp url auth {}",
-									scopeAuthProvider.isRtmpAcceptsQueryParamsEnabled());
-							log.debug("Scope configuration validator {}", scopeAuthProvider.getValidator());
-						}
-
-						// Register the custom auth provider configuration
-						MultiThreadedApplicationAdapter adapter = (MultiThreadedApplicationAdapter) issc.getHandler();
-						if (adapter != null) {
-							log.debug("Registering application event handler for {}", issc.getName());
-							scopeAuthenticationProviders.put(issc.getName(), scopeAuthProvider);
-
-							IApplication delegate = new AppEventMonitor(scopeAuthProvider, issc);
-							appHandlerDelegates.put(issc.getName(), delegate);
-
-							adapter.addListener(delegate);
-						}
-					} catch (Exception e) {
-						log.error("Error reading configuration override from {}", issc.getName(), e);
-					}
+				IContext context = issc.getContext();
+				if (context.hasBean(BEAN_ID)) {
+					configureCustomContext(issc, context);
 				} else {
-					log.debug("No custom override for scope {}", issc.getName());
-
-					// Register security on app unconditionally if default.active=true
-					MultiThreadedApplicationAdapter adapter = (MultiThreadedApplicationAdapter) issc.getHandler();
-					if (adapter != null && defaultActive) {
-						log.debug("Activating security automatically for scope {}", issc.getName());
-						log.debug("Registering application event handler for {}", issc.getName());
-
-						scopeAuthenticationProviders.put(issc.getName(), defaultAuthProvider);
-
-						IApplication delegate = new AppEventMonitor(defaultAuthProvider, issc);
-						appHandlerDelegates.put(issc.getName(), delegate);
-
-						adapter.addListener(delegate);
-					}
+					configureContext(issc, context);
 				}
-
 			}
 		}
 	}
@@ -600,8 +435,7 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	/**
 	 * Sets the string representing the configuration file name
 	 * 
-	 * @param configurationFile
-	 *            The file name to set
+	 * @param configurationFile The file name to set
 	 */
 	public void setConfigurationFile(String configurationFile) {
 		this.configurationFile = configurationFile;
@@ -653,6 +487,146 @@ public class SimpleAuthPlugin extends Red5Plugin {
 
 	public void setDefaultConfiguration(Configuration defaultConfiguration) {
 		this.defaultConfiguration = defaultConfiguration;
+	}
+
+	/**
+	 * Configures a scope/context without a custom configuration.
+	 * 
+	 * @param scope
+	 * @param context
+	 */
+	private void configureContext(IScope scope, IContext context) {
+		final String scopeName = scope.getName();
+		log.debug("No custom override for scope {}", scopeName);
+		final MultiThreadedApplicationAdapter adapter = (MultiThreadedApplicationAdapter) scope.getHandler();
+		// Register security on app unconditionally if default.active=true
+		if (adapter != null && defaultActive) {
+			log.debug("Activating security automatically and registering application event handler for scope {}", scopeName);
+			scopeAuthenticationProviders.put(scopeName, defaultAuthProvider);
+
+			IApplication delegate = new AppEventMonitor(defaultAuthProvider, scope);
+			appHandlerDelegates.put(scopeName, delegate);
+
+			adapter.addListener(delegate);
+		}
+	}
+
+	/**
+	 * Configures a scope/context with a custom configuration.
+	 * 
+	 * @param scope
+	 * @param context
+	 */
+	private void configureCustomContext(IScope scope, IContext context) {
+		final String scopeName = scope.getName();
+		log.debug("Custom override for scope {}", scopeName);
+		final MultiThreadedApplicationAdapter adapter = (MultiThreadedApplicationAdapter) scope.getHandler();
+		try {
+			Configuration simpleAuthCustom = (Configuration) context.getBean(BEAN_ID);
+			if (log.isDebugEnabled()) {
+				log.debug("Custom configuration security enabled {}", simpleAuthCustom.isActive());
+				log.debug("Custom configuration rtmp security {}", simpleAuthCustom.isRtmp());
+				log.debug("Custom configuration rtsp security {}", simpleAuthCustom.isRtsp());
+				log.debug("Custom configuration rtc security {}", simpleAuthCustom.isRtc());
+				log.debug("Custom configuration srt security {}", simpleAuthCustom.isSrt());
+				log.debug("Custom configuration mpegts security {}", simpleAuthCustom.isMpegts());
+				log.debug("Custom configuration http security {}", simpleAuthCustom.isHttp());
+				log.debug("Custom configuration ws security {}", simpleAuthCustom.isWs());
+				log.debug("Custom configuration rtmp agents {}",
+						simpleAuthCustom.getAllowedRtmpAgents());
+				log.debug("Custom configuration rtmp url auth {}",
+						simpleAuthCustom.isRtmpAllowQueryParamsEnabled());
+				log.debug("Custom configuration validator {}", simpleAuthCustom.getValidator());
+			}
+			// App level plugin configuration
+			AuthenticatorProvider scopeAuthProvider = new AuthenticatorProvider();
+			scopeAuthProvider.setEnabled(simpleAuthCustom.isActive());
+			// if no custom validator defined use default else use custom
+			if (simpleAuthCustom.getValidator() != null) {
+				scopeAuthProvider.setValidator(simpleAuthCustom.getValidator());
+			} else {
+				scopeAuthProvider.setValidator(defaultAuthValidator);
+			}
+			if (simpleAuthCustom.isRtmpUpdated()) {
+				scopeAuthProvider.setSecureRTMP(simpleAuthCustom.isRtmp());
+			} else {
+				scopeAuthProvider.setSecureRTMP(defaultConfiguration.isRtmp());
+			}
+			if (simpleAuthCustom.isRtspUpdated()) {
+				scopeAuthProvider.setSecureRTSP(simpleAuthCustom.isRtsp());
+			} else {
+				scopeAuthProvider.setSecureRTSP(defaultConfiguration.isRtsp());
+			}
+			if (simpleAuthCustom.isRtcUpdated()) {
+				scopeAuthProvider.setSecureRTC(simpleAuthCustom.isRtc());
+			} else {
+				scopeAuthProvider.setSecureRTC(defaultConfiguration.isRtc());
+			}
+			if (simpleAuthCustom.isSrtUpdated()) {
+				scopeAuthProvider.setSecureSRT(simpleAuthCustom.isSrt());
+			} else {
+				scopeAuthProvider.setSecureSRT(defaultConfiguration.isSrt());
+			}
+			if (simpleAuthCustom.isMpegtsUpdated()) {
+				scopeAuthProvider.setSecureMPEGTS(simpleAuthCustom.isMpegts());
+			} else {
+				scopeAuthProvider.setSecureMPEGTS(defaultConfiguration.isMpegts());
+			}
+			if (simpleAuthCustom.isHttpUpdated()) {
+				scopeAuthProvider.setSecureHTTP(simpleAuthCustom.isHttp());
+			} else {
+				scopeAuthProvider.setSecureHTTP(defaultConfiguration.isHttp());
+			}
+			if (simpleAuthCustom.isWsUpdated()) {
+				scopeAuthProvider.setSecureWS(simpleAuthCustom.isWs());
+			} else {
+				scopeAuthProvider.setSecureWS(defaultConfiguration.isWs());
+			}
+			if (simpleAuthCustom.isRtmpAllowQueryParamsUpdated()) {
+				scopeAuthProvider.setRtmpAcceptsQueryParamsEnabled(
+						simpleAuthCustom.isRtmpAllowQueryParamsEnabled());
+			} else {
+				scopeAuthProvider.setRtmpAcceptsQueryParamsEnabled(
+						defaultConfiguration.isRtmpAllowQueryParamsEnabled());
+			}
+			if (simpleAuthCustom.isAllowedRtmpAgentsUpdated()
+					&& simpleAuthCustom.getAllowedRtmpAgents() != null
+					&& simpleAuthCustom.getAllowedRtmpAgents().length() > 2) {
+				scopeAuthProvider.setAllowedRtmpAgents(simpleAuthCustom.getAllowedRtmpAgents());
+			} else {
+				scopeAuthProvider.setAllowedRtmpAgents(defaultConfiguration.getAllowedRtmpAgents());
+			}
+			// initialize the scope authenticator
+			scopeAuthProvider.initialize();
+			if (log.isDebugEnabled()) {
+				log.debug("Scope authenticator provider configuration");
+				log.debug("Scope configuration security enabled {}", scopeAuthProvider.isEnabled());
+				log.debug("Scope configuration rtmp security {}", scopeAuthProvider.isSecureRTMP());
+				log.debug("Scope configuration rtsp security {}", scopeAuthProvider.isSecureRTSP());
+				log.debug("Scope configuration rtc security {}", scopeAuthProvider.isSecureRTC());
+				log.debug("Scope configuration srt security {}", scopeAuthProvider.isSecureSRT());
+				log.debug("Scope configuration mpegts security {}", scopeAuthProvider.isSecureMPEGTS());
+				log.debug("Scope configuration http security {}", scopeAuthProvider.isSecureHTTP());
+				log.debug("Scope configuration ws security {}", scopeAuthProvider.isSecureWS());
+				log.debug("Scope configuration rtmp agents {}",
+						scopeAuthProvider.getAllowedRtmpAgents());
+				log.debug("Scope configuration rtmp url auth {}",
+						scopeAuthProvider.isRtmpAcceptsQueryParamsEnabled());
+				log.debug("Scope configuration validator {}", scopeAuthProvider.getValidator());
+			}
+			// Register the custom auth provider configuration
+			if (adapter != null) {
+				log.debug("Registering application event handler for {}", scopeName);
+				scopeAuthenticationProviders.put(scopeName, scopeAuthProvider);
+
+				IApplication delegate = new AppEventMonitor(scopeAuthProvider, scope);
+				appHandlerDelegates.put(scopeName, delegate);
+
+				adapter.addListener(delegate);
+			}
+		} catch (Exception e) {
+			log.error("Error reading configuration override from {}", scopeName, e);
+		}
 	}
 
 }

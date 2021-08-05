@@ -296,7 +296,6 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 		String password = conn.getStringAttribute("password");
 		String token = (conn.hasAttribute("token")) ? conn.getStringAttribute("token") : "";
 		String type = "publisher";
-
 		if (password != null && username != null) {
 			if (!this.lazyAuth) {
 				try {
@@ -305,7 +304,6 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 					if (canStream) {
 						conn.setAttribute("roletype", type);
 						conn.setAttribute("streamID", stream);
-
 						if (result.has("url")) {
 							String url = result.get("url").getAsString();
 							conn.setAttribute("signedURL", url);
@@ -315,7 +313,7 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 					}
 					return canStream;
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.warn(type);
 					return false;
 				}
 			} else {
@@ -323,7 +321,6 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 				return true;
 			}
 		}
-
 		return true;
 	}
 
