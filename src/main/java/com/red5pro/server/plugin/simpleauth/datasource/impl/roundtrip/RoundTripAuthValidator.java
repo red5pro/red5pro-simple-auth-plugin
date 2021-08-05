@@ -79,6 +79,8 @@ import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
  */
 public class RoundTripAuthValidator implements IAuthenticationValidator, IApplication {
 
+	private static Logger logger = LoggerFactory.getLogger(RoundTripAuthValidator.class);
+
 	/**
 	 * Token parameter name constant
 	 */
@@ -270,14 +272,11 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 				return true;
 			} else {
 				logger.error("wrong password supplied for cluster");
-				return false;
 			}
-
 		} catch (Exception e) {
-			logger.error("It was not possible to validate the cluster password");
-			e.printStackTrace();
-			return false;
+			logger.error("It was not possible to validate the cluster password", e);
 		}
+		return false;
 	}
 
 	/**

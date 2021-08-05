@@ -49,7 +49,6 @@ import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.RoundTripA
  * @author Rajdeep Rath
  *
  */
-
 public class PlaybackSecurity implements IStreamPlaybackSecurity {
 
 	private static Logger logger = LoggerFactory.getLogger(PlaybackSecurity.class);
@@ -63,14 +62,12 @@ public class PlaybackSecurity implements IStreamPlaybackSecurity {
 	@Override
 	public boolean isPlaybackAllowed(IScope scope, String name, int start, int length, boolean flushPlaylist) {
 		IConnection connection = Red5.getConnectionLocal();
-
 		Map<String, Object> attrs = connection.getAttributes();
 		Iterator<Map.Entry<String, Object>> it = attrs.entrySet().iterator();
 		while (it.hasNext()) {
 			Map.Entry<String, Object> pair = it.next();
 			logger.debug("key : {} value : {}", pair.getKey(), pair.getValue());
 		}
-
 		return roundTripAuthValidator.onPlaybackAuthenticate(connection, scope, name);
 	}
 

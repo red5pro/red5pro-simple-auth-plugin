@@ -27,6 +27,7 @@ package com.red5pro.server.plugin.simpleauth.impl;
 
 import org.red5.server.api.IConnection;
 import org.red5.server.net.rtmp.RTMPMinaConnection;
+import org.red5.server.net.rtmpt.RTMPTConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,12 +35,10 @@ import com.red5pro.server.plugin.simpleauth.AuthenticatorType;
 import com.red5pro.server.plugin.simpleauth.Configuration;
 import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
 import com.red5pro.server.plugin.simpleauth.interfaces.ISimpleAuthAuthenticator;
-
-import org.red5.server.net.rtmpt.RTMPTConnection;
-import com.red5pro.server.stream.rtsp.IRTSPConnection;
-import com.red5pro.server.stream.srt.ISRTConnection;
 import com.red5pro.server.stream.mpegts.IMPEGTSConnection;
 import com.red5pro.server.stream.restreamer.IConnectorShell;
+import com.red5pro.server.stream.rtsp.IRTSPConnection;
+import com.red5pro.server.stream.srt.ISRTConnection;
 import com.red5pro.server.stream.webrtc.IWebRTCConnection;
 
 /**
@@ -143,9 +142,9 @@ public class AuthenticatorProvider {
 	private boolean secureSRT = true;
 
 	/**
-	 * Global settings for enabling or disabling mpeg-ts authentication
+	 * Global settings for enabling or disabling mpegts authentication
 	 */
-	private boolean secureMpegTs = true;
+	private boolean secureMPEGTS = true;
 
 	/**
 	 * Global settings for enabling or disabling http authentication
@@ -187,7 +186,7 @@ public class AuthenticatorProvider {
 		this.setSecureRTSP(config.isRtsp());
 		this.setSecureRTC(config.isRtc());
 		this.setSecureSRT(config.isSrt());
-		this.setSecureMpegTs(config.isMpegTs());
+		this.setSecureMPEGTS(config.isMpegts());
 		this.setSecureHTTP(config.isHttp());
 		this.setSecureWS(config.isWs());
 		this.setRtmpAcceptsQueryParamsEnabled(config.isRtmpAllowQueryParamsEnabled());
@@ -267,7 +266,7 @@ public class AuthenticatorProvider {
 					return happyAuthenticator;
 				}
 			} else if (connection instanceof IMPEGTSConnection) {
-				if (secureMpegTs) {
+				if (secureMPEGTS) {
 					return mpegtsAuthenticator;
 				} else {
 					return happyAuthenticator;
@@ -313,7 +312,7 @@ public class AuthenticatorProvider {
 			}
 			return happyAuthenticator;
 		case MPEGTS:
-			if (secureMpegTs) {
+			if (secureMPEGTS) {
 				return mpegtsAuthenticator;
 			}
 			return happyAuthenticator;
@@ -405,12 +404,84 @@ public class AuthenticatorProvider {
 	}
 
 	/**
-	 * Sets the global default state for rtsp authentication
+	 * Sets the global default state for rtc authentication
 	 * 
 	 * @param secureRTC Boolean value to rtc
 	 */
 	public void setSecureRTC(boolean secureRTC) {
 		this.secureRTC = secureRTC;
+	}
+
+	/**
+	 * Returns the global default state for srt authentication
+	 * 
+	 * @return true if srt authentication is enabled, otherwise false
+	 */
+	public boolean isSecureSRT() {
+		return secureSRT;
+	}
+
+	/**
+	 * Sets the global default state for srt authentication
+	 * 
+	 * @param secureSRT Boolean value to srt
+	 */
+	public void setSecureSRT(boolean secureSRT) {
+		this.secureSRT = secureSRT;
+	}
+
+	/**
+	 * Returns the global default state for mpegts authentication
+	 * 
+	 * @return true if mpegts authentication is enabled, otherwise false
+	 */
+	public boolean isSecureMPEGTS() {
+		return secureMPEGTS;
+	}
+
+	/**
+	 * Sets the global default state for mpegts authentication
+	 * 
+	 * @param secureMPEGTS Boolean value to mpegts
+	 */
+	public void setSecureMPEGTS(boolean secureMPEGTS) {
+		this.secureMPEGTS = secureMPEGTS;
+	}
+
+	/**
+	 * Returns the global default state for http authentication
+	 * 
+	 * @return true if http authentication is enabled, otherwise false
+	 */
+	public boolean isSecureHTTP() {
+		return secureHTTP;
+	}
+
+	/**
+	 * Sets the global default state for http authentication
+	 * 
+	 * @param secureHTTP Boolean value to http
+	 */
+	public void setSecureHTTP(boolean secureHTTP) {
+		this.secureHTTP = secureHTTP;
+	}
+
+	/**
+	 * Returns the global default state for ws authentication
+	 * 
+	 * @return true if ws authentication is enabled, otherwise false
+	 */
+	public boolean isSecureWS() {
+		return secureWS;
+	}
+
+	/**
+	 * Sets the global default state for ws authentication
+	 * 
+	 * @param secureWS Boolean value to ws
+	 */
+	public void setSecureWS(boolean secureWS) {
+		this.secureWS = secureWS;
 	}
 
 	/**
