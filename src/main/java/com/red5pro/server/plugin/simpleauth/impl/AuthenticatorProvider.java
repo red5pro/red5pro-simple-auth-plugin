@@ -177,7 +177,8 @@ public class AuthenticatorProvider {
 	/**
 	 * Constructor for AuthenticatorProvider
 	 * 
-	 * @param config The Configuration object
+	 * @param config
+	 *            The Configuration object
 	 */
 	public AuthenticatorProvider(Configuration config) {
 		this.setEnabled(config.isActive());
@@ -229,7 +230,8 @@ public class AuthenticatorProvider {
 	/**
 	 * Constructor for AuthenticatorProvider
 	 * 
-	 * @param validator An IAuthenticationValidator object
+	 * @param validator
+	 *            An IAuthenticationValidator object
 	 */
 	public AuthenticatorProvider(IAuthenticationValidator validator) {
 		this.validator = validator;
@@ -239,7 +241,8 @@ public class AuthenticatorProvider {
 	 * Returns appropriate ISimpleAuthAuthenticator implementation based on
 	 * IConnection type
 	 * 
-	 * @param connection The client IConnection object to check
+	 * @param connection
+	 *            The client IConnection object to check
 	 * @return A ISimpleAuthAuthenticator which will be used to authenticate the
 	 *         connection
 	 */
@@ -291,52 +294,53 @@ public class AuthenticatorProvider {
 	 * Returns appropriate ISimpleAuthAuthenticator implementation based on
 	 * AuthenticatorType.
 	 * 
-	 * @param type AuthenticatorType
+	 * @param type
+	 *            AuthenticatorType
 	 * @return An ISimpleAuthAuthenticator which will be used to authenticate
 	 */
 	public ISimpleAuthAuthenticator getAuthenticator(AuthenticatorType type) {
 		switch (type) {
-		case RTMP:
-			if (secureRTMP) {
-				return rtmpAuthenticator;
-			}
-			return happyAuthenticator;
-		case RTSP:
-			if (secureRTSP) {
-				return rtspAuthenticator;
-			}
-			return happyAuthenticator;
-		case RTC:
-			if (secureRTC) {
-				return webRtcAuthenticator;
-			}
-			return happyAuthenticator;
-		case MPEGTS:
-			if (secureMPEGTS) {
-				return mpegtsAuthenticator;
-			}
-			return happyAuthenticator;
-		case SRT:
-			if (secureSRT) {
-				return srtAuthenticator;
-			}
-			return happyAuthenticator;
-		case HTTP:
-			if (secureHTTP) {
-				return httpAuthenticator;
-			}
-			return happyAuthenticator;
-		case WS:
-			if (secureWS) {
-				return wsAuthenticator;
-			}
-			return happyAuthenticator;
-		case HAPPY:
-			return happyAuthenticator;
-		default:
-			logger.error("Unknown type {}", type);
-		case GRUMPY:
-			return grumpyAuthenticator;
+			case RTMP :
+				if (secureRTMP) {
+					return rtmpAuthenticator;
+				}
+				return happyAuthenticator;
+			case RTSP :
+				if (secureRTSP) {
+					return rtspAuthenticator;
+				}
+				return happyAuthenticator;
+			case RTC :
+				if (secureRTC) {
+					return webRtcAuthenticator;
+				}
+				return happyAuthenticator;
+			case MPEGTS :
+				if (secureMPEGTS) {
+					return mpegtsAuthenticator;
+				}
+				return happyAuthenticator;
+			case SRT :
+				if (secureSRT) {
+					return srtAuthenticator;
+				}
+				return happyAuthenticator;
+			case HTTP :
+				if (secureHTTP) {
+					return httpAuthenticator;
+				}
+				return happyAuthenticator;
+			case WS :
+				if (secureWS) {
+					return wsAuthenticator;
+				}
+				return happyAuthenticator;
+			case HAPPY :
+				return happyAuthenticator;
+			default :
+				logger.error("Unknown type {}", type);
+			case GRUMPY :
+				return grumpyAuthenticator;
 		}
 	}
 
@@ -352,7 +356,8 @@ public class AuthenticatorProvider {
 	/**
 	 * Sets the value of validator
 	 * 
-	 * @param validator The IAuthenticationValidator to set
+	 * @param validator
+	 *            The IAuthenticationValidator to set
 	 */
 	public void setValidator(IAuthenticationValidator validator) {
 		this.validator = validator;
@@ -370,7 +375,8 @@ public class AuthenticatorProvider {
 	/**
 	 * Sets the global default state for rtmp authentication
 	 * 
-	 * @param secureRTMP Boolean value to set
+	 * @param secureRTMP
+	 *            Boolean value to set
 	 */
 	public void setSecureRTMP(boolean secureRTMP) {
 		this.secureRTMP = secureRTMP;
@@ -388,7 +394,8 @@ public class AuthenticatorProvider {
 	/**
 	 * Sets the global default state for rtsp authentication
 	 * 
-	 * @param secureRTSP Boolean value to set
+	 * @param secureRTSP
+	 *            Boolean value to set
 	 */
 	public void setSecureRTSP(boolean secureRTSP) {
 		this.secureRTSP = secureRTSP;
@@ -406,7 +413,8 @@ public class AuthenticatorProvider {
 	/**
 	 * Sets the global default state for rtc authentication
 	 * 
-	 * @param secureRTC Boolean value to rtc
+	 * @param secureRTC
+	 *            Boolean value to rtc
 	 */
 	public void setSecureRTC(boolean secureRTC) {
 		this.secureRTC = secureRTC;
@@ -424,7 +432,8 @@ public class AuthenticatorProvider {
 	/**
 	 * Sets the global default state for srt authentication
 	 * 
-	 * @param secureSRT Boolean value to srt
+	 * @param secureSRT
+	 *            Boolean value to srt
 	 */
 	public void setSecureSRT(boolean secureSRT) {
 		this.secureSRT = secureSRT;
@@ -442,7 +451,8 @@ public class AuthenticatorProvider {
 	/**
 	 * Sets the global default state for mpegts authentication
 	 * 
-	 * @param secureMPEGTS Boolean value to mpegts
+	 * @param secureMPEGTS
+	 *            Boolean value to mpegts
 	 */
 	public void setSecureMPEGTS(boolean secureMPEGTS) {
 		this.secureMPEGTS = secureMPEGTS;
@@ -460,7 +470,8 @@ public class AuthenticatorProvider {
 	/**
 	 * Sets the global default state for http authentication
 	 * 
-	 * @param secureHTTP Boolean value to http
+	 * @param secureHTTP
+	 *            Boolean value to http
 	 */
 	public void setSecureHTTP(boolean secureHTTP) {
 		this.secureHTTP = secureHTTP;
@@ -478,7 +489,8 @@ public class AuthenticatorProvider {
 	/**
 	 * Sets the global default state for ws authentication
 	 * 
-	 * @param secureWS Boolean value to ws
+	 * @param secureWS
+	 *            Boolean value to ws
 	 */
 	public void setSecureWS(boolean secureWS) {
 		this.secureWS = secureWS;
@@ -496,7 +508,8 @@ public class AuthenticatorProvider {
 	/**
 	 * Sets the enabled state of the AuthenticationProvider
 	 * 
-	 * @param enabled The Boolean value to set
+	 * @param enabled
+	 *            The Boolean value to set
 	 */
 	public void setEnabled(boolean enabled) {
 		this.enabled = enabled;
@@ -514,7 +527,8 @@ public class AuthenticatorProvider {
 	/**
 	 * Sets the global state of rtmp query string check in authentication
 	 * 
-	 * @param rtmpAcceptsQueryParams The Boolean value to set
+	 * @param rtmpAcceptsQueryParams
+	 *            The Boolean value to set
 	 */
 	public void setRtmpAcceptsQueryParamsEnabled(boolean rtmpAcceptsQueryParams) {
 		this.rtmpAcceptsQueryParamsEnabled = rtmpAcceptsQueryParams;
@@ -532,7 +546,8 @@ public class AuthenticatorProvider {
 	/**
 	 * Sets the global value for allowed rtmp agents
 	 * 
-	 * @param allowedRtmpAgents A comma separated string of rtmp agents or * for all
+	 * @param allowedRtmpAgents
+	 *            A comma separated string of rtmp agents or * for all
 	 */
 	public void setAllowedRtmpAgents(String allowedRtmpAgents) {
 		this.allowedRtmpAgents = allowedRtmpAgents;

@@ -73,9 +73,11 @@ public interface ISimpleAuthAuthenticator {
 	/**
 	 * This method is called when a client tries to connect to your application.
 	 * 
-	 * @param type AuthenticatorType connection implementation hint
+	 * @param type
+	 *            AuthenticatorType connection implementation hint
 	 * @param connection
-	 *            The Object representing the client, may not be implementation of IConnection
+	 *            The Object representing the client, may not be implementation of
+	 *            IConnection
 	 * @param params
 	 *            The connection parameters provided by the client. For rtsp, rtc
 	 *            and rtmp clients (which pass params via query params) the

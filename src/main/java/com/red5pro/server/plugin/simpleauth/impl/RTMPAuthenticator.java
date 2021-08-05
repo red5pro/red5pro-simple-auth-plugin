@@ -39,8 +39,12 @@ import com.red5pro.server.plugin.simpleauth.utils.Utils;
 
 /**
  * This class is a authenticator implementation of
- * <pre>ISimpleAuthAuthenticator</pre>, which is used to handle authentication for
- * RTMP clients.
+ * 
+ * <pre>
+ * ISimpleAuthAuthenticator
+ * </pre>
+ * 
+ * , which is used to handle authentication for RTMP clients.
  * 
  * @author Rajdeep Rath
  *

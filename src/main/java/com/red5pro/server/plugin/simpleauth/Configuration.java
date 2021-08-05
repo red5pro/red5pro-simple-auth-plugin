@@ -173,7 +173,8 @@ public class Configuration {
 	/**
 	 * Constructor for Configuration class
 	 * 
-	 * @param active Enables or disables the configuration
+	 * @param active
+	 *            Enables or disables the configuration
 	 */
 	public Configuration(boolean active) {
 		this.active = active;
@@ -191,7 +192,8 @@ public class Configuration {
 	/**
 	 * Sets the the value of <code>active</code>
 	 * 
-	 * @param active The boolean value to set
+	 * @param active
+	 *            The boolean value to set
 	 */
 	public void setActive(boolean active) {
 		if (this.active != active) {
@@ -212,7 +214,8 @@ public class Configuration {
 	/**
 	 * Sets the IAuthenticationValidator for this configuration
 	 * 
-	 * @param validator A IAuthenticationValidator object
+	 * @param validator
+	 *            A IAuthenticationValidator object
 	 */
 	public void setValidator(IAuthenticationValidator validator) {
 		this.validator = validator;
@@ -230,7 +233,8 @@ public class Configuration {
 	/**
 	 * Sets the the value of <code>rtmp</code>
 	 * 
-	 * @param rtmp The boolean value to set to enable or disable rtmp authentication
+	 * @param rtmp
+	 *            The boolean value to set to enable or disable rtmp authentication
 	 */
 	public void setRtmp(boolean rtmp) {
 		if (this.rtmp != rtmp) {
@@ -251,7 +255,8 @@ public class Configuration {
 	/**
 	 * Sets the the value of <code>rtsp</code>
 	 * 
-	 * @param rtsp The boolean value to set to enable or disable rtsp authentication
+	 * @param rtsp
+	 *            The boolean value to set to enable or disable rtsp authentication
 	 */
 	public void setRtsp(boolean rtsp) {
 		if (this.rtsp != rtsp) {
@@ -272,7 +277,8 @@ public class Configuration {
 	/**
 	 * Sets the the value of <code>rtc</code>
 	 * 
-	 * @param rtc The boolean value to set to enable or disable rtc authentication
+	 * @param rtc
+	 *            The boolean value to set to enable or disable rtc authentication
 	 */
 	public void setRtc(boolean rtc) {
 		if (this.rtc != rtc) {
@@ -293,7 +299,8 @@ public class Configuration {
 	/**
 	 * Sets the the value of <code>srt</code>
 	 * 
-	 * @param srt The boolean value to set to enable or disable srt authentication
+	 * @param srt
+	 *            The boolean value to set to enable or disable srt authentication
 	 */
 	public void setSrt(boolean srt) {
 		if (this.srt != srt) {
@@ -314,8 +321,9 @@ public class Configuration {
 	/**
 	 * Sets the the value of <code>mpegts</code>
 	 * 
-	 * @param mpegts The boolean value to set to enable or disable mpegts
-	 *               authentication
+	 * @param mpegts
+	 *            The boolean value to set to enable or disable mpegts
+	 *            authentication
 	 */
 	public void setMpegts(boolean mpegts) {
 		if (this.mpegts != mpegts) {
@@ -336,7 +344,8 @@ public class Configuration {
 	/**
 	 * Sets the the value of <code>http</code>
 	 * 
-	 * @param http The boolean value to set to enable or disable http authentication
+	 * @param http
+	 *            The boolean value to set to enable or disable http authentication
 	 */
 	public void setHttp(boolean http) {
 		if (this.http != http) {
@@ -357,7 +366,8 @@ public class Configuration {
 	/**
 	 * Sets the the value of <code>ws</code>
 	 * 
-	 * @param ws The boolean value to set to enable or disable ws authentication
+	 * @param ws
+	 *            The boolean value to set to enable or disable ws authentication
 	 */
 	public void setWs(boolean ws) {
 		if (this.ws != ws) {
@@ -379,8 +389,9 @@ public class Configuration {
 	/**
 	 * Sets the the value of <code>rtmpAllowQueryParams</code>
 	 * 
-	 * @param rtmpAllowQueryParams The boolean value to set to allow or disallow
-	 *                             checking query params for rtmp clients
+	 * @param rtmpAllowQueryParams
+	 *            The boolean value to set to allow or disallow checking query
+	 *            params for rtmp clients
 	 */
 	public void setRtmpAllowQueryParamsEnabled(boolean rtmpAllowQueryParams) {
 		this.rtmpAllowQueryParamsEnabled = rtmpAllowQueryParams;
@@ -399,7 +410,8 @@ public class Configuration {
 	/**
 	 * Sets the the value of <code>allowedRtmpAgents</code>
 	 * 
-	 * @param allowedRtmpAgents The comma separated list of rtmp agents
+	 * @param allowedRtmpAgents
+	 *            The comma separated list of rtmp agents
 	 */
 	public void setAllowedRtmpAgents(String allowedRtmpAgents) {
 		this.allowedRtmpAgents = allowedRtmpAgents;

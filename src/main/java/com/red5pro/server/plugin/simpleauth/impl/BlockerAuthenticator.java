@@ -31,8 +31,12 @@ import com.red5pro.server.plugin.simpleauth.interfaces.SimpleAuthAuthenticatorAd
 
 /**
  * This class is a authenticator implementation of
- * <pre>ISimpleAuthAuthenticator</pre>, which is used to reject incoming client
- * connections unconditionally.
+ * 
+ * <pre>
+ * ISimpleAuthAuthenticator
+ * </pre>
+ * 
+ * , which is used to reject incoming client connections unconditionally.
  * 
  * @author Rajdeep Rath
  *

@@ -81,6 +81,7 @@ import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
  * "https://www.red5pro.com/docs/server/authplugin.html">Documentation</a>.
  * 
  * @author Rajdeep Rath
+ * @author Paul Gregoire
  *
  */
 public class SimpleAuthPlugin extends Red5Plugin {
@@ -298,7 +299,8 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	/**
 	 * Creates a new properties file.
 	 * 
-	 * @param props    Properties to store
+	 * @param props
+	 *            Properties to store
 	 * @param path
 	 * @param comments
 	 */
@@ -308,8 +310,8 @@ public class SimpleAuthPlugin extends Red5Plugin {
 		Path uri = Paths.get(String.format("%s/%s", confDir, path));
 		OutputStream os = null;
 		try {
-			os = Files.newOutputStream(uri, new OpenOption[] { StandardOpenOption.CREATE, StandardOpenOption.WRITE,
-					StandardOpenOption.TRUNCATE_EXISTING });
+			os = Files.newOutputStream(uri, new OpenOption[]{StandardOpenOption.CREATE, StandardOpenOption.WRITE,
+					StandardOpenOption.TRUNCATE_EXISTING});
 			log.debug("Creating configuration file {}", uri.toAbsolutePath());
 			props.store(os, comments);
 		} catch (IOException e) {
@@ -374,14 +376,15 @@ public class SimpleAuthPlugin extends Red5Plugin {
 				final String scopeName = scope.getName();
 				// log.info("Scope removed {}", scopeName);
 				if (scope.getType() == ScopeType.APPLICATION) {
-					final MultiThreadedApplicationAdapter adapter = (MultiThreadedApplicationAdapter) scope.getHandler();
+					final MultiThreadedApplicationAdapter adapter = (MultiThreadedApplicationAdapter) scope
+							.getHandler();
 					// Deregister AuthenticatorProvider
 					if (scopeAuthenticationProviders.containsKey(scopeName)) {
 						@SuppressWarnings("unused")
 						AuthenticatorProvider provider = scopeAuthenticationProviders.remove(scopeName);
 						provider = null;
 					}
-					// Deregister IApplication deletage
+					// Deregister IApplication delegate
 					if (appHandlerDelegates.containsKey(scopeName)) {
 						if (adapter != null) {
 							IApplication delegate = appHandlerDelegates.remove(scopeName);
@@ -435,7 +438,8 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	/**
 	 * Sets the string representing the configuration file name
 	 * 
-	 * @param configurationFile The file name to set
+	 * @param configurationFile
+	 *            The file name to set
 	 */
 	public void setConfigurationFile(String configurationFile) {
 		this.configurationFile = configurationFile;
@@ -501,7 +505,8 @@ public class SimpleAuthPlugin extends Red5Plugin {
 		final MultiThreadedApplicationAdapter adapter = (MultiThreadedApplicationAdapter) scope.getHandler();
 		// Register security on app unconditionally if default.active=true
 		if (adapter != null && defaultActive) {
-			log.debug("Activating security automatically and registering application event handler for scope {}", scopeName);
+			log.debug("Activating security automatically and registering application event handler for scope {}",
+					scopeName);
 			scopeAuthenticationProviders.put(scopeName, defaultAuthProvider);
 
 			IApplication delegate = new AppEventMonitor(defaultAuthProvider, scope);
@@ -532,10 +537,8 @@ public class SimpleAuthPlugin extends Red5Plugin {
 				log.debug("Custom configuration mpegts security {}", simpleAuthCustom.isMpegts());
 				log.debug("Custom configuration http security {}", simpleAuthCustom.isHttp());
 				log.debug("Custom configuration ws security {}", simpleAuthCustom.isWs());
-				log.debug("Custom configuration rtmp agents {}",
-						simpleAuthCustom.getAllowedRtmpAgents());
-				log.debug("Custom configuration rtmp url auth {}",
-						simpleAuthCustom.isRtmpAllowQueryParamsEnabled());
+				log.debug("Custom configuration rtmp agents {}", simpleAuthCustom.getAllowedRtmpAgents());
+				log.debug("Custom configuration rtmp url auth {}", simpleAuthCustom.isRtmpAllowQueryParamsEnabled());
 				log.debug("Custom configuration validator {}", simpleAuthCustom.getValidator());
 			}
 			// App level plugin configuration
@@ -583,14 +586,12 @@ public class SimpleAuthPlugin extends Red5Plugin {
 				scopeAuthProvider.setSecureWS(defaultConfiguration.isWs());
 			}
 			if (simpleAuthCustom.isRtmpAllowQueryParamsUpdated()) {
-				scopeAuthProvider.setRtmpAcceptsQueryParamsEnabled(
-						simpleAuthCustom.isRtmpAllowQueryParamsEnabled());
+				scopeAuthProvider.setRtmpAcceptsQueryParamsEnabled(simpleAuthCustom.isRtmpAllowQueryParamsEnabled());
 			} else {
-				scopeAuthProvider.setRtmpAcceptsQueryParamsEnabled(
-						defaultConfiguration.isRtmpAllowQueryParamsEnabled());
+				scopeAuthProvider
+						.setRtmpAcceptsQueryParamsEnabled(defaultConfiguration.isRtmpAllowQueryParamsEnabled());
 			}
-			if (simpleAuthCustom.isAllowedRtmpAgentsUpdated()
-					&& simpleAuthCustom.getAllowedRtmpAgents() != null
+			if (simpleAuthCustom.isAllowedRtmpAgentsUpdated() && simpleAuthCustom.getAllowedRtmpAgents() != null
 					&& simpleAuthCustom.getAllowedRtmpAgents().length() > 2) {
 				scopeAuthProvider.setAllowedRtmpAgents(simpleAuthCustom.getAllowedRtmpAgents());
 			} else {
@@ -608,10 +609,8 @@ public class SimpleAuthPlugin extends Red5Plugin {
 				log.debug("Scope configuration mpegts security {}", scopeAuthProvider.isSecureMPEGTS());
 				log.debug("Scope configuration http security {}", scopeAuthProvider.isSecureHTTP());
 				log.debug("Scope configuration ws security {}", scopeAuthProvider.isSecureWS());
-				log.debug("Scope configuration rtmp agents {}",
-						scopeAuthProvider.getAllowedRtmpAgents());
-				log.debug("Scope configuration rtmp url auth {}",
-						scopeAuthProvider.isRtmpAcceptsQueryParamsEnabled());
+				log.debug("Scope configuration rtmp agents {}", scopeAuthProvider.getAllowedRtmpAgents());
+				log.debug("Scope configuration rtmp url auth {}", scopeAuthProvider.isRtmpAcceptsQueryParamsEnabled());
 				log.debug("Scope configuration validator {}", scopeAuthProvider.getValidator());
 			}
 			// Register the custom auth provider configuration

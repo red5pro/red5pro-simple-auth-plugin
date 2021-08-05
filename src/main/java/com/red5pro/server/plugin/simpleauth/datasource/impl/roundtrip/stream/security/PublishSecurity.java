@@ -62,7 +62,7 @@ public class PublishSecurity implements IStreamPublishSecurity {
 
 	// default response for allowed or not
 	private boolean defaultResponse = true;
-	
+
 	public PublishSecurity(RoundTripAuthValidator roundTripAuthValidator) {
 		this.roundTripAuthValidator = roundTripAuthValidator;
 	}

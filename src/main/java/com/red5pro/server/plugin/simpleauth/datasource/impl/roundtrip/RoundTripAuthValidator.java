@@ -66,8 +66,17 @@ import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
 
 /**
  * This class is a sample implementation of the
- * <pre>IAuthenticationValidator</pre> interface. It is meant to serve as a
- * default placeholder and an example for a <pre>IAuthenticationValidator</pre>
+ * 
+ * <pre>
+ * IAuthenticationValidator
+ * </pre>
+ * 
+ * interface. It is meant to serve as a default placeholder and an example for a
+ * 
+ * <pre>
+ * IAuthenticationValidator
+ * </pre>
+ * 
  * implementation. The implementation has access to your data source which
  * provides a means to validate credentials and other parameters.
  *

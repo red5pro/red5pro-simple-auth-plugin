@@ -37,9 +37,13 @@ import org.red5.server.api.IConnection;
 import com.red5pro.server.plugin.simpleauth.interfaces.SimpleAuthAuthenticatorAdapter;
 
 /**
- * This class is a authenticator implementation for MPEG-TS and is based on 
- * <pre>RTCAuthAuthenticator</pre>, which is used to handle authentication for
- * WebRTC clients.
+ * This class is a authenticator implementation for MPEG-TS and is based on
+ * 
+ * <pre>
+ * RTCAuthAuthenticator
+ * </pre>
+ * 
+ * , which is used to handle authentication for WebRTC clients.
  * 
  * @author Rajdeep Rath
  * @author Paul Gregoire

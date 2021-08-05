@@ -34,8 +34,12 @@ import com.red5pro.server.plugin.simpleauth.interfaces.SimpleAuthAuthenticatorAd
 
 /**
  * This class is a authenticator implementation of
- * <pre>ISimpleAuthAuthenticator</pre>, which is used to handle authentication for
- * RTSP clients.
+ * 
+ * <pre>
+ * ISimpleAuthAuthenticator
+ * </pre>
+ * 
+ * , which is used to handle authentication for RTSP clients.
  * 
  * @author Rajdeep Rath
  *

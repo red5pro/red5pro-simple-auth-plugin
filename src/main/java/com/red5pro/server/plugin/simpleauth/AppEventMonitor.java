@@ -38,8 +38,13 @@ import com.red5pro.server.plugin.simpleauth.interfaces.ISimpleAuthAuthenticator;
 
 /**
  * This class works as a application level hook by implementing the
- * <pre>IApplication</pre>interface.This class is used to intercept a client
- * connection to the application. For details on application hooks see <a href=
+ * 
+ * <pre>
+ * IApplication
+ * </pre>
+ * 
+ * interface.This class is used to intercept a client connection to the
+ * application. For details on application hooks see <a href=
  * "http://red5.org/javadoc/red5-server-common/org/red5/server/adapter/IApplication.html">IApplication</a>
  * 
  * @author Rajdeep Rath

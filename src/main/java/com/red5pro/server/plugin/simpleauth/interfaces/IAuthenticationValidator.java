@@ -36,7 +36,13 @@ public interface IAuthenticationValidator {
 
 	/**
 	 * This method is triggered when a new instance is created via bean declaration
-	 * in the <pre>red5-web.xml</pre> file of the web application.
+	 * in the
+	 * 
+	 * <pre>
+	 * red5 - web.xml
+	 * </pre>
+	 * 
+	 * file of the web application.
 	 */
 	void initialize();
 
