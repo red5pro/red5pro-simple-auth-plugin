@@ -438,7 +438,8 @@ public class SimpleAuthPlugin extends Red5Plugin {
 				cleanUp(scope);
 				// configure the scope as specified
 				configureScope(scope, configuration);
-				break;
+				// return true; break out
+				return true;
 			}
 		}
 		return false;
@@ -654,64 +655,81 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	private void configureScope(IScope scope, Properties configuration) {
 		final String scopeName = scope.getName();
 		log.debug("Configure scope {} with {}", scopeName, configuration);
-		boolean defaultActive = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.active", "false"));
-		this.defaultActive = defaultActive;
-		log.debug("default active {}", defaultActive);
-		defaultAuthValidatorDataSource = configuration.getProperty("simpleauth.default.defaultAuthValidatorDataSource");
-		log.debug("defaultAuthValidatorDataSource {}", defaultAuthValidatorDataSource);
+		// get the app context so we can write the configuration
+		ApplicationContext context = scope.getContext().getApplicationContext();
+		// from here on, we're affecting a app / context, not the plugin context
+		boolean active = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.active"));
+		log.debug("active {}", active);
+		String authValidatorDataSource = configuration.getProperty("simpleauth.default.defaultAuthValidatorDataSource");
+		// if its null, use the plugins default
+		if (authValidatorDataSource == null) {
+			authValidatorDataSource = defaultAuthValidatorDataSource;
+		}
+		log.debug("authValidatorDataSource {}", authValidatorDataSource);
 		boolean rtmpSecurityEnabled = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.rtmp"));
-			log.debug("rtmpSecurityEnabled {}", rtmpSecurityEnabled);
+		log.debug("rtmpSecurityEnabled {}", rtmpSecurityEnabled);
 		boolean rtspSecurityEnabled = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.rtsp"));
-			log.debug("rtspSecurityEnabled {}", rtspSecurityEnabled);
+		log.debug("rtspSecurityEnabled {}", rtspSecurityEnabled);
 		boolean rtcSecurityEnabled = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.rtc"));
-			log.debug("rtcSecurityEnabled {}", rtcSecurityEnabled);
+		log.debug("rtcSecurityEnabled {}", rtcSecurityEnabled);
 		boolean srtSecurityEnabled = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.srt"));
-			log.debug("srtSecurityEnabled {}", srtSecurityEnabled);
+		log.debug("srtSecurityEnabled {}", srtSecurityEnabled);
 		boolean mpegtsSecurityEnabled = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.mpegts"));
-			log.debug("mpegtsSecurityEnabled {}", mpegtsSecurityEnabled);
+		log.debug("mpegtsSecurityEnabled {}", mpegtsSecurityEnabled);
 		boolean httpSecurityEnabled = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.http"));
-			log.debug("httpSecurityEnabled {}", httpSecurityEnabled);
+		log.debug("httpSecurityEnabled {}", httpSecurityEnabled);
 		boolean wsSecurityEnabled = Boolean.parseBoolean(configuration.getProperty("simpleauth.default.ws"));
-			log.debug("wsSecurityEnabled {}", wsSecurityEnabled);
+		log.debug("wsSecurityEnabled {}", wsSecurityEnabled);
 		boolean rtmpAllowQueryParams = Boolean
 				.parseBoolean(configuration.getProperty("simpleauth.default.rtmp.queryparams"));
-			log.debug("rtmpAllowQueryParams {}", rtmpAllowQueryParams);
+		log.debug("rtmpAllowQueryParams {}", rtmpAllowQueryParams);
 		String allowedRtmpAgents = configuration.getProperty("simpleauth.default.rtmp.agents", "*");
-			log.debug("allowedRtmpAgents {}", allowedRtmpAgents);
-		// Prepare default validator
-		Resource fileDataSource = getConfResource(context, defaultAuthValidatorDataSource);
+		log.debug("allowedRtmpAgents {}", allowedRtmpAgents);
+		// Prepare the scope validator
+		Resource fileDataSource = getConfResource(context, authValidatorDataSource);
 		if (!fileDataSource.exists()) {
 			Properties credentials = new Properties();
 			// creates a new credentials file
-			addConfResource(credentials, defaultAuthValidatorDataSource,
+			addConfResource(credentials, authValidatorDataSource,
 					"SimpleAuth Credentials\n[ Add username and password as key-value pair separated by a space (one per line) ]\nExample: testuser testpass\n");
 			// once the file is created, get the resource
-			fileDataSource = getConfResource(context, defaultAuthValidatorDataSource);
+			fileDataSource = getConfResource(context, authValidatorDataSource);
 		}
-		// default credentials file
+		IAuthenticationValidator authValidator;
 		try {
-			defaultAuthValidator = new Red5ProFileAuthenticationValidator(fileDataSource.getFile().getAbsolutePath());
+			authValidator = new Red5ProFileAuthenticationValidator(fileDataSource.getFile().getAbsolutePath());
+			authValidator.initialize();
+			// default configuration
+			Configuration scopeConfiguration = new Configuration();
+			scopeConfiguration.setValidator(authValidator);
+			scopeConfiguration.setRtmp(rtmpSecurityEnabled);
+			scopeConfiguration.setRtsp(rtspSecurityEnabled);
+			scopeConfiguration.setRtc(rtcSecurityEnabled);
+			scopeConfiguration.setSrt(srtSecurityEnabled);
+			scopeConfiguration.setMpegts(mpegtsSecurityEnabled);
+			scopeConfiguration.setHttp(httpSecurityEnabled);
+			scopeConfiguration.setWs(wsSecurityEnabled);
+			scopeConfiguration.setRtmpAllowQueryParamsEnabled(rtmpAllowQueryParams);
+			scopeConfiguration.setAllowedRtmpAgents(allowedRtmpAgents);
+			scopeConfiguration.setActive(active);
+			// prepare default authentication provider
+			AuthenticatorProvider scopeAuthProvider = new AuthenticatorProvider(scopeConfiguration);
+			scopeAuthProvider.initialize();
+			scopeAuthProvider.setEnabled(scopeConfiguration.isActive());
+			// Register the custom auth provider configuration
+			MultiThreadedApplicationAdapter adapter = (MultiThreadedApplicationAdapter) scope.getHandler();
+			if (adapter != null) {
+				log.debug("Registering application event handler for {}", scopeName);
+				scopeAuthenticationProviders.put(scopeName, scopeAuthProvider);
+
+				IApplication delegate = new AppEventMonitor(scopeAuthProvider, scope);
+				appHandlerDelegates.put(scopeName, delegate);
+
+				adapter.addListener(delegate);
+			}
 		} catch (IOException e) {
-			
+			log.warn("Authentication configuration of {} failed", scopeName, e);
 		}
-		defaultAuthValidator.initialize();
-		// default configuration
-		defaultConfiguration = new Configuration();
-		defaultConfiguration.setValidator(defaultAuthValidator);
-		defaultConfiguration.setRtmp(rtmpSecurityEnabled);
-		defaultConfiguration.setRtsp(rtspSecurityEnabled);
-		defaultConfiguration.setRtc(rtcSecurityEnabled);
-		defaultConfiguration.setSrt(srtSecurityEnabled);
-		defaultConfiguration.setMpegts(mpegtsSecurityEnabled);
-		defaultConfiguration.setHttp(httpSecurityEnabled);
-		defaultConfiguration.setWs(wsSecurityEnabled);
-		defaultConfiguration.setRtmpAllowQueryParamsEnabled(rtmpAllowQueryParams);
-		defaultConfiguration.setAllowedRtmpAgents(allowedRtmpAgents);
-		defaultConfiguration.setActive(defaultActive);
-		// prepare default authentication provider
-		defaultAuthProvider = new AuthenticatorProvider(defaultConfiguration);
-		defaultAuthProvider.initialize();
-		defaultAuthProvider.setEnabled(defaultConfiguration.isActive());
 	}
 
 	/**
@@ -722,7 +740,6 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	private void cleanUp(IScope scope) {
 		final String scopeName = scope.getName();
 		log.debug("Cleaning up scope {}", scopeName);
-		final MultiThreadedApplicationAdapter adapter = (MultiThreadedApplicationAdapter) scope.getHandler();
 		// Deregister AuthenticatorProvider
 		if (scopeAuthenticationProviders.containsKey(scopeName)) {
 			@SuppressWarnings("unused")
@@ -731,6 +748,7 @@ public class SimpleAuthPlugin extends Red5Plugin {
 		}
 		// Deregister IApplication delegate
 		if (appHandlerDelegates.containsKey(scopeName)) {
+			MultiThreadedApplicationAdapter adapter = (MultiThreadedApplicationAdapter) scope.getHandler();
 			if (adapter != null) {
 				IApplication delegate = appHandlerDelegates.remove(scopeName);
 				adapter.removeListener(delegate);
