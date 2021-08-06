@@ -177,7 +177,7 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	@Override
 	public void initialize() {
 		logger.info("initialization part");
-		if (this.lazyAuth) {
+		if (lazyAuth) {
 			threadPoolExecutor = Executors.newCachedThreadPool();
 		}
 		if (adapter != null) {
@@ -191,9 +191,9 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 		logger.debug("adapter = {}", adapter);
 		logger.debug("context = {}", context);
 
-		logger.debug("auth host = {}", this.host);
-		logger.debug("auth port = {}", this.port);
-		logger.debug("auth protocol = {}", this.protocol);
+		logger.debug("auth host = {}", host);
+		logger.debug("auth port = {}", port);
+		logger.debug("auth protocol = {}", protocol);
 
 		logger.debug("authEndPoint = {}", validateEndPoint);
 		logger.debug("invalidateEndPoint = {}", invalidateEndPoint);
@@ -385,7 +385,6 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	public JsonObject authenticateOverHttp(String type, String username, String password, String token, String stream) {
 		JsonObject result = null;
 		CloseableHttpClient client = null;
-
 		try {
 			AuthData data = new AuthData();
 			data.setType(type);
@@ -413,24 +412,21 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 			httpPost.setConfig(requestConfig.build());
 
 			CloseableHttpResponse response = client.execute(httpPost);
-
 			if (response.getStatusLine().getStatusCode() == 200) {
 				String responseBody = EntityUtils.toString(response.getEntity());
 				logger.info("responseBody = {}", responseBody);
-
 				JsonParser parser = new JsonParser();
 				JsonElement obj = parser.parse(responseBody);
-
 				result = obj.getAsJsonObject();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.warn("Exception attempting authentication", e);
 		} finally {
 			if (client != null) {
 				try {
 					client.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.warn("Exception in client close", e);
 				}
 			}
 		}
@@ -455,7 +451,6 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	public JsonObject invalidateCredentialsOverHttp(String username, String password, String token, String stream) {
 		JsonObject result = null;
 		CloseableHttpClient client = null;
-
 		try {
 			AuthData data = new AuthData();
 			data.setUsername(username);
@@ -468,30 +463,26 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 			client = HttpClients.createDefault();
 
 			HttpPost httpPost = new HttpPost(this.protocol + this.host + ":" + this.port + this.invalidateEndPoint);
-
 			StringEntity entity = new StringEntity(json);
 			httpPost.setEntity(entity);
 			httpPost.setHeader("Accept", "application/json");
 			httpPost.setHeader("Content-type", "application/json");
 			CloseableHttpResponse response = client.execute(httpPost);
-
 			if (response.getStatusLine().getStatusCode() == 200) {
 				String responseBody = EntityUtils.toString(response.getEntity());
 				logger.info("responseBody = {}", responseBody);
-
 				JsonParser parser = new JsonParser();
 				JsonElement obj = parser.parse(responseBody);
-
 				result = obj.getAsJsonObject();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.warn("Exception invalidating credentials", e);
 		} finally {
 			if (client != null) {
 				try {
 					client.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.warn("Exception in client close", e);
 				}
 			}
 		}
@@ -507,6 +498,7 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	class LazyAuthentication implements Runnable {
 
 		String type, username, password, token, stream;
+
 		IConnection conn;
 
 		public LazyAuthentication(IConnection conn, String type, String username, String password, String token,
@@ -522,7 +514,6 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 		@Override
 		public void run() {
 			boolean canStream = false;
-
 			try {
 				JsonObject result = authenticateOverHttp(type, username, password, token, stream);
 				canStream = result.get("result").getAsBoolean();
@@ -532,7 +523,7 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 				}
 			} catch (Exception e) {
 				canStream = false;
-				e.printStackTrace();
+				logger.warn("Exception attempting authentication", e);
 			}
 		}
 	}
@@ -563,7 +554,6 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 
 	@Override
 	public void appDisconnect(IConnection conn) {
-
 		if (conn.hasAttribute("roletype") && conn.getStringAttribute("roletype").equals("publisher")
 				&& conn.hasAttribute("streamID") && conn.hasAttribute("username") && conn.hasAttribute("password")) {
 

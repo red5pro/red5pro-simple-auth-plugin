@@ -25,7 +25,10 @@
 //
 package com.red5pro.server.plugin.simpleauth.impl;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -33,6 +36,7 @@ import javax.servlet.http.HttpSession;
 import org.red5.server.BaseConnection;
 import org.red5.server.api.Red5;
 
+import com.red5pro.server.ConnectionAttributeKey;
 import com.red5pro.server.plugin.simpleauth.AuthenticatorType;
 import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
 import com.red5pro.server.plugin.simpleauth.interfaces.SimpleAuthAuthenticatorAdapter;
@@ -54,26 +58,57 @@ public class HTTPAuthenticator extends SimpleAuthAuthenticatorAdapter {
 
 	@Override
 	public boolean authenticate(AuthenticatorType type, Object connection, Object[] params) {
-		Red5.setConnectionLocal(new HTTPWrapperConnection(connection));
-		try {
-			@SuppressWarnings("unchecked")
-			Map<String, Object> map = (Map<String, Object>) params[0];
-			String username = (String) map.get(IAuthenticationValidator.USERNAME);
-			String password = (String) map.get(IAuthenticationValidator.PASSWORD);
-			return source.onConnectAuthenticate(username, password, params);
-		} catch (Exception e) {
-			logger.error("Error authenticating connection {}", e.getMessage());
-		} finally {
-			Red5.setConnectionLocal(null);
+		boolean authenticated = false;
+		if (connection instanceof HttpSession) {
+			try {
+				HttpSession session = (HttpSession) connection;
+				// lookup any existing wrapper for this session
+				HTTPSessionWrapperConnection sessionWrapper = (HTTPSessionWrapperConnection) session
+						.getAttribute(ConnectionAttributeKey.CONNECTION_TAG.value);
+				if (sessionWrapper == null) {
+					sessionWrapper = new HTTPSessionWrapperConnection(session);
+				}
+				Red5.setConnectionLocal(sessionWrapper);
+				// check for previous authenticated permission
+				String permissions = (String) session.getAttribute(ConnectionAttributeKey.PERMISSIONS.value);
+				if (permissions != null && permissions.contains("authorization_completed")) {
+					authenticated = true;
+				} else {
+					@SuppressWarnings("unchecked")
+					Map<String, Object> map = (Map<String, Object>) params[0];
+					String username = (String) map.get(IAuthenticationValidator.USERNAME);
+					String password = (String) map.get(IAuthenticationValidator.PASSWORD);
+					// set authentication result
+					authenticated = source.onConnectAuthenticate(username, password, params);
+					if (authenticated) {
+						if (permissions == null) {
+							session.setAttribute(ConnectionAttributeKey.PERMISSIONS.value, "authorization_completed");
+						} else {
+							session.setAttribute(ConnectionAttributeKey.PERMISSIONS.value,
+									String.format("%s,authorization_completed", permissions));
+						}
+					}
+				}
+			} catch (Exception e) {
+				logger.error("Error authenticating connection {}", e.getMessage());
+			} finally {
+				Red5.setConnectionLocal(null);
+			}
+		} else {
+			logger.warn("Connection type is invalid for authentication", connection.getClass().getName());
 		}
-		return false;
+		return authenticated;
 	}
-	
-	class HTTPWrapperConnection extends BaseConnection {
 
-		HttpSession session;
-		
-		HTTPWrapperConnection(Object connection) {
+	/**
+	 * Very basic implementation of an IConnection for an incoming HTTP based
+	 * client.
+	 */
+	class HTTPSessionWrapperConnection extends BaseConnection {
+
+		final HttpSession session;
+
+		HTTPSessionWrapperConnection(Object connection) {
 			super("TRANSIENT");
 			// connection here should be the HttpRequest
 			HttpServletRequest httpRequest = (HttpServletRequest) connection;
@@ -84,6 +119,52 @@ public class HTTPAuthenticator extends SimpleAuthAuthenticatorAdapter {
 		public boolean setAttribute(String name, Object value) {
 			session.setAttribute(name, value);
 			return true;
+		}
+
+		@Override
+		public Set<String> getAttributeNames() {
+			Set<String> names = new HashSet<>();
+			session.getAttributeNames().asIterator().forEachRemaining(name -> {
+				names.add(name);
+			});
+			return names;
+		}
+
+		@Override
+		public Map<String, Object> getAttributes() {
+			Map<String, Object> map = new HashMap<>();
+			session.getAttributeNames().asIterator().forEachRemaining(name -> {
+				map.put(name, session.getAttribute(name));
+			});
+			return map;
+		}
+
+		@Override
+		public Object getAttribute(String name) {
+			return session.getAttribute(name);
+		}
+
+		@Override
+		public boolean hasAttribute(String name) {
+			return session.getAttribute(name) != null;
+		}
+
+		@Override
+		public String getStringAttribute(String name) {
+			return (String) session.getAttribute(name);
+		}
+
+		@Override
+		public boolean removeAttribute(String name) {
+			session.removeAttribute(name);
+			return true;
+		}
+
+		@Override
+		public void removeAttributes() {
+			session.getAttributeNames().asIterator().forEachRemaining(name -> {
+				session.removeAttribute(name);
+			});
 		}
 
 		@Override
@@ -102,7 +183,7 @@ public class HTTPAuthenticator extends SimpleAuthAuthenticatorAdapter {
 
 		@Override
 		public int getLastPingTime() {
-			return 0;
+			return (int) session.getLastAccessedTime();
 		}
 
 		@Override
@@ -118,7 +199,7 @@ public class HTTPAuthenticator extends SimpleAuthAuthenticatorAdapter {
 		public long getWrittenBytes() {
 			return 0;
 		}
-		
+
 	}
 
 }

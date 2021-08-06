@@ -84,9 +84,6 @@ import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
  */
 public class SimpleAuthPlugin extends Red5Plugin {
 
-	/**
-	 * Logger
-	 */
 	private Logger log = LoggerFactory.getLogger(SimpleAuthPlugin.class);
 
 	/**
@@ -289,7 +286,8 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	/**
 	 * Creates a new properties file.
 	 * 
-	 * @param props    Properties to store
+	 * @param props
+	 *            Properties to store
 	 * @param path
 	 * @param comments
 	 */
@@ -299,8 +297,8 @@ public class SimpleAuthPlugin extends Red5Plugin {
 		Path uri = Paths.get(String.format("%s/%s", confDir, path));
 		OutputStream os = null;
 		try {
-			os = Files.newOutputStream(uri, new OpenOption[] { StandardOpenOption.CREATE, StandardOpenOption.WRITE,
-					StandardOpenOption.TRUNCATE_EXISTING });
+			os = Files.newOutputStream(uri, new OpenOption[]{StandardOpenOption.CREATE, StandardOpenOption.WRITE,
+					StandardOpenOption.TRUNCATE_EXISTING});
 			log.debug("Creating configuration file {}", uri.toAbsolutePath());
 			props.store(os, comments);
 		} catch (IOException e) {
@@ -397,7 +395,9 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	 * Enable or disable a scope's authentication provider.
 	 * 
 	 * @param scopeName
+	 *            scopes name
 	 * @param enable
+	 *            the enabled state
 	 */
 	public void enableAuthenticatorProvider(String scopeName, boolean enable) {
 		AuthenticatorProvider scopeAuthProvider = scopeAuthenticationProviders.get(scopeName);
@@ -410,6 +410,7 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	 * Returns whether or not a given scope's authentication provider is enabled.
 	 * 
 	 * @param scopeName
+	 *            scopes name
 	 * @return true if enabled and false otherwise
 	 */
 	public boolean isAuthenticatorProviderEnabled(String scopeName) {
@@ -424,7 +425,9 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	 * Configure a scope's authentication provider, replacing any existing entry.
 	 * 
 	 * @param scopeName
+	 *            scopes name
 	 * @param configuration
+	 *            scopes configuration properties
 	 * @return true if configured and false otherwise
 	 */
 	public boolean configureAuthenticatorProvider(String scopeName, Properties configuration) {
@@ -457,7 +460,8 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	/**
 	 * Sets the string representing the configuration file name
 	 * 
-	 * @param configurationFile The file name to set
+	 * @param configurationFile
+	 *            The file name to set
 	 */
 	public void setConfigurationFile(String configurationFile) {
 		this.configurationFile = configurationFile;
@@ -515,6 +519,7 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	 * Returns the IAuthenticationValidator for a given app / scope name.
 	 * 
 	 * @param scopeName
+	 *            scopes name
 	 * @return IAuthenticationValidator if an AuthenticatorProvider is registered
 	 *         for the scope name, otherwise null for not found
 	 */
@@ -531,6 +536,7 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	 * Returns the AuthenticatorProvider for a given app / scope name.
 	 * 
 	 * @param scopeName
+	 *            scopes name
 	 * @return AuthenticatorProvider if registered for given scope name or null if
 	 *         not found
 	 */

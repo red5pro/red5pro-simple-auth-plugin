@@ -16,7 +16,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import org.red5.server.adapter.StatefulScopeWrappingAdapter;
+import org.red5.server.api.IContext;
 import org.red5.server.api.plugin.IRed5Plugin;
+import org.red5.server.api.scope.IScope;
 import org.red5.server.plugin.PluginRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,7 +90,8 @@ public class AuthServlet implements Filter {
 
 		// XXX check for user/passwd and / or just a token
 		String username = null, password = null, token = "", type = "subscriber";
-		// if stream name doesnt come via params get it from the url minus any extension like m3u8, ts, etc
+		// if stream name doesnt come via params get it from the url minus any extension
+		// like m3u8, ts, etc
 		String streamName = null;
 		Iterator<String> paramNames = httpRequest.getParameterNames().asIterator();
 		while (paramNames.hasNext()) {
@@ -104,9 +108,6 @@ public class AuthServlet implements Filter {
 				streamName = httpRequest.getParameter(paramName);
 			}
 		}
-		if (streamName == null) {
-			
-		}
 		// process token and / or u:p combo
 		if (token != null || (username != null && password != null)) {
 			if (appCtx == null) {
@@ -118,6 +119,28 @@ public class AuthServlet implements Filter {
 					// return an error
 					httpResponse.sendError(500, "No application context found");
 				}
+				log.info("App: {}", appCtx.getDisplayName());
+			}
+			// use one level higher than MultithreadedAppAdapter since we only need the
+			// scope
+			StatefulScopeWrappingAdapter app = (StatefulScopeWrappingAdapter) appCtx.getBean("web.handler");
+			// applications scope
+			IScope appScope = app.getScope();
+			IContext context = appScope.getContext();
+			log.debug("Application scope: {} context: {}", appScope, context);
+			// get the request uri
+			String requestedURI = httpRequest.getRequestURI();
+			String pathInfo = httpRequest.getPathInfo();
+			log.debug("Request URI: {} Path Info: {}", requestedURI, pathInfo);
+			// if pathInfo is null then set it to single slash
+			if (pathInfo == null) {
+				// a pathinfo will be null if theres no trailing slash or context after the
+				// servlet name in the url
+				pathInfo = "/";
+			}
+			// ensure we've got a stream name
+			if (streamName == null) {
+
 			}
 			// ensure we've got a plugin reference
 			if (plugin == null) {
@@ -127,13 +150,16 @@ public class AuthServlet implements Filter {
 				}
 			}
 			try {
+				// use the http session for storage of params etc
+				HttpSession session = httpRequest.getSession();
 				// get the validator
 				IAuthenticationValidator validator = plugin.getAuthValidator(appCtx.getDisplayName());
 				if (validator instanceof RoundTripAuthValidator) {
+					log.debug("Using RoundTripAuthValidator");
 					// perform the validation via round-trip
-					JsonObject result = ((RoundTripAuthValidator) validator).authenticateOverHttp(type, username, password, token, streamName);
+					JsonObject result = ((RoundTripAuthValidator) validator).authenticateOverHttp(type, username,
+							password, token, streamName);
 					if (result.get("result").getAsBoolean()) {
-						HttpSession session = httpRequest.getSession();
 						session.setAttribute("roletype", type);
 						session.setAttribute("streamID", streamName);
 						if (result.has("url")) {
@@ -144,14 +170,15 @@ public class AuthServlet implements Filter {
 						chain.doFilter(request, response);
 					}
 				} else {
+					log.debug("Using HTTPAuthenticator");
 					Map<String, String> paramsMap = new HashMap<>();
 					httpRequest.getParameterNames().asIterator().forEachRemaining((name) -> {
 						paramsMap.put(name, httpRequest.getParameter(name));
 					});
+					log.debug("Parameters map: {}", paramsMap);
 					Object[] rest = new Object[1];
 					rest[0] = paramsMap;
-					if (((HTTPAuthenticator) validator).authenticate(AuthenticatorType.HTTP, httpRequest, rest)) {
-						HttpSession session = httpRequest.getSession();
+					if (((HTTPAuthenticator) validator).authenticate(AuthenticatorType.HTTP, session, rest)) {
 						session.setAttribute("roletype", type);
 						session.setAttribute("streamID", streamName);
 						// continue down the chain
