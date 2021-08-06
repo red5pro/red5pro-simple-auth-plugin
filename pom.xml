@@ -43,6 +43,7 @@
         <spring.version>[5.3.5,)</spring.version>
         <httpcomponents.version>[4.5.13,)</httpcomponents.version>
         <junit.version>[4.13.1,)</junit.version>
+		<jwt.version>0.7.0</jwt.version>
     </properties>
     <issueManagement>
         <system>github</system>
@@ -68,6 +69,51 @@
     <build>
         <defaultGoal>clean package</defaultGoal>
         <plugins>
+        	<plugin>
+                <!-- https://maven.apache.org/plugins/maven-shade-plugin/examples/includes-excludes.html -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>2.4.3</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <minimizeJar>false</minimizeJar>
+                            <artifactSet>
+                                <!-- mvn dependency:tree -Ddetail=true >deps.log -->
+                                <excludes>
+                                    <exclude>org.red5:*</exclude>
+                                    <exclude>com.red5pro:red5pro-common:*</exclude>
+                                    <exclude>org.apache.*:*</exclude>
+                                    <exclude>org.slf4j:*</exclude>
+                                    <exclude>ch.qos.logback:*</exclude>
+                                    <exclude>org.bouncycastle:*</exclude>
+                                    <exclude>org.springframework:*</exclude>
+                                    <exclude>com.googlecode.*:*</exclude>
+                                    <exclude>org.ow2.asm:*</exclude>
+                                    <exclude>net.minidev:*</exclude>                                   
+                                    <exclude>com.google.code.gson:*</exclude>
+                                    <exclude>com.fasterxml.jackson.core:*</exclude>
+                                </excludes>
+                            </artifactSet>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>META-INF/versions/9/*.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
@@ -335,6 +381,11 @@
             <groupId>org.apache.mina</groupId>
             <version>${mina.version}</version>
         </dependency>
+        <dependency>
+		  <groupId>io.jsonwebtoken</groupId>
+		  <artifactId>jjwt</artifactId>
+		  <version>${jwt.version}</version>
+		</dependency>
         <dependency>
             <groupId>com.red5pro</groupId>
             <artifactId>red5pro-common</artifactId>

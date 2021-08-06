@@ -64,6 +64,7 @@ import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.model.Auth
 import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.stream.security.PlaybackSecurity;
 import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.stream.security.PublishSecurity;
 import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
+import com.red5pro.server.plugin.simpleauth.utils.Utils;
 
 /**
  * This class is a sample implementation of the
@@ -308,40 +309,6 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	}
 
 	/**
-	 * Special method to help validate cluster restreamer using the cluster password
-	 *
-	 * @param password
-	 *            The provided password to validate
-	 * @return Boolean true if validation is successful, otherwise false
-	 */
-	private boolean validateClusterReStreamer(String password) {
-		// check that password match with cluster password
-		File file = new File(System.getProperty("red5.config_root") + "/cluster.xml");
-		DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-		try {
-			DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
-			Document document = documentBuilder.parse(file);
-
-			Element pageElement = (Element) document.getElementsByTagName("beans").item(0);
-			NodeList result = pageElement.getElementsByTagName("property");
-			logger.info("length: " + result.getLength());
-
-			NamedNodeMap s = result.item(1).getAttributes();
-			if (s.item(1).getNodeValue().equals(password)) {
-				return true;
-			} else {
-				logger.error("wrong password supplied for cluster");
-				return false;
-			}
-
-		} catch (Exception e) {
-			logger.error("It was not possible to validate the cluster password");
-			e.printStackTrace();
-			return false;
-		}
-	}
-
-	/**
 	 * Authenticates a publisher connection, via remote server
 	 *
 	 * @param conn
@@ -423,7 +390,7 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 
 		if (password != null && username != null) {
 			if (username.equals("cluster-restreamer")) {
-				return validateClusterReStreamer(password);
+				return Utils.validateClusterReStreamer(password);
 			} else if (!this.lazyAuth) {
 				try {
 					JsonObject result = authenticateOverHttp(type, username, password, token, stream, contextPath);
