@@ -162,10 +162,10 @@ public class SimpleAuthPlugin extends Red5Plugin {
 				configuration.put("simpleauth.default.rtmp", "true");
 				configuration.put("simpleauth.default.rtsp", "true");
 				configuration.put("simpleauth.default.rtc", "true");
-				configuration.put("simpleauth.default.srt", "true");
-				configuration.put("simpleauth.default.mpegts", "true");
+				configuration.put("simpleauth.default.srt", "false");
+				configuration.put("simpleauth.default.mpegts", "false");
 				configuration.put("simpleauth.default.http", "true");
-				configuration.put("simpleauth.default.ws", "true");
+				configuration.put("simpleauth.default.ws", "false");
 				configuration.put("simpleauth.default.rtmp.queryparams", "true");
 				configuration.put("simpleauth.default.rtmp.agents", "*");
 				// creates a new configuration properties file

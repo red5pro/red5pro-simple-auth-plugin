@@ -17,7 +17,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import org.red5.server.adapter.StatefulScopeWrappingAdapter;
-import org.red5.server.api.IContext;
 import org.red5.server.api.plugin.IRed5Plugin;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.plugin.PluginRegistry;
@@ -63,7 +62,6 @@ import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
  */
 public class AuthServlet implements Filter {
 
-	@SuppressWarnings("unused")
 	private static Logger log = LoggerFactory.getLogger(AuthServlet.class);
 
 	private volatile ApplicationContext appCtx;
@@ -119,29 +117,25 @@ public class AuthServlet implements Filter {
 					// return an error
 					httpResponse.sendError(500, "No application context found");
 				}
-				log.info("App: {}", appCtx.getDisplayName());
+				// log.info("App context: {}", appCtx.getDisplayName());
 			}
 			// use one level higher than MultithreadedAppAdapter since we only need the
 			// scope
 			StatefulScopeWrappingAdapter app = (StatefulScopeWrappingAdapter) appCtx.getBean("web.handler");
 			// applications scope
 			IScope appScope = app.getScope();
-			IContext context = appScope.getContext();
-			log.debug("Application scope: {} context: {}", appScope, context);
-			// get the request uri
-			String requestedURI = httpRequest.getRequestURI();
-			String pathInfo = httpRequest.getPathInfo();
-			log.debug("Request URI: {} Path Info: {}", requestedURI, pathInfo);
-			// if pathInfo is null then set it to single slash
-			if (pathInfo == null) {
-				// a pathinfo will be null if theres no trailing slash or context after the
-				// servlet name in the url
-				pathInfo = "/";
-			}
+			log.debug("Application scope: {}", appScope);
+			String scopeName = appScope.getName();
 			// ensure we've got a stream name
 			if (streamName == null) {
-
+				// get the request uri
+				String requestedURI = httpRequest.getRequestURI();
+				log.debug("Request URI: {}", requestedURI); // ex: /live/stream1.m3u8
+				String strippedURI = requestedURI.substring(requestedURI.lastIndexOf('/') + 1);
+				String[] parts = strippedURI.split("\\.|_");
+				streamName = parts[0];
 			}
+			log.debug("Stream name: {}", streamName);
 			// ensure we've got a plugin reference
 			if (plugin == null) {
 				Optional<IRed5Plugin> opt = Optional.ofNullable(PluginRegistry.getPlugin(SimpleAuthPlugin.NAME));
@@ -153,7 +147,7 @@ public class AuthServlet implements Filter {
 				// use the http session for storage of params etc
 				HttpSession session = httpRequest.getSession();
 				// get the validator
-				IAuthenticationValidator validator = plugin.getAuthValidator(appCtx.getDisplayName());
+				IAuthenticationValidator validator = plugin.getAuthValidator(scopeName);
 				if (validator instanceof RoundTripAuthValidator) {
 					log.debug("Using RoundTripAuthValidator");
 					// perform the validation via round-trip
@@ -189,9 +183,10 @@ public class AuthServlet implements Filter {
 				// return an error
 				httpResponse.sendError(500, "Authentication failed");
 			}
+		} else {
+			// return an error
+			httpResponse.sendError(401, "Unauthorized request");
 		}
-		// return an error
-		httpResponse.sendError(401, "Unauthorized request");
 	}
 
 }

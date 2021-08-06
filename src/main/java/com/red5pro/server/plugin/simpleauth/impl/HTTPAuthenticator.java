@@ -58,6 +58,7 @@ public class HTTPAuthenticator extends SimpleAuthAuthenticatorAdapter {
 
 	@Override
 	public boolean authenticate(AuthenticatorType type, Object connection, Object[] params) {
+		logger.trace("authenticate - type: {} connection: {} params: {}", type, connection, params[0]);
 		boolean authenticated = false;
 		if (connection instanceof HttpSession) {
 			try {
