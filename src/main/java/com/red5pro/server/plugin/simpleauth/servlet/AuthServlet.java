@@ -1,7 +1,10 @@
 package com.red5pro.server.plugin.simpleauth.servlet;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Optional;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -11,11 +14,21 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
+import org.red5.server.api.plugin.IRed5Plugin;
+import org.red5.server.plugin.PluginRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
+
+import com.google.gson.JsonObject;
+import com.red5pro.server.plugin.simpleauth.AuthenticatorType;
+import com.red5pro.server.plugin.simpleauth.SimpleAuthPlugin;
+import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.RoundTripAuthValidator;
+import com.red5pro.server.plugin.simpleauth.impl.HTTPAuthenticator;
+import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
 
 /**
  * Attempts authentication on a given request.
@@ -52,8 +65,14 @@ public class AuthServlet implements Filter {
 
 	private volatile ApplicationContext appCtx;
 
+	private SimpleAuthPlugin plugin;
+
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
+		Optional<IRed5Plugin> opt = Optional.ofNullable(PluginRegistry.getPlugin(SimpleAuthPlugin.NAME));
+		if (opt.isPresent()) {
+			plugin = (SimpleAuthPlugin) opt.get();
+		}
 	}
 
 	@Override
@@ -67,21 +86,29 @@ public class AuthServlet implements Filter {
 		// XXX should we check / expect any headers?
 
 		// XXX check for user/passwd and / or just a token
-		String user = null, passwd = null, token = null;
+		String username = null, password = null, token = "", type = "subscriber";
+		// if stream name doesnt come via params get it from the url minus any extension like m3u8, ts, etc
+		String streamName = null;
 		Iterator<String> paramNames = httpRequest.getParameterNames().asIterator();
 		while (paramNames.hasNext()) {
 			String paramName = paramNames.next();
-			if ("token".equals(paramName)) {
+			if (IAuthenticationValidator.TOKEN.equals(paramName)) {
 				token = httpRequest.getParameter(paramName);
-			} else if ("user".equals(paramName)) {
-				user = httpRequest.getParameter(paramName);
-			} else if ("passwd".equals(paramName)) {
-				passwd = httpRequest.getParameter(paramName);
+			} else if (IAuthenticationValidator.USERNAME.equals(paramName)) {
+				username = httpRequest.getParameter(paramName);
+			} else if (IAuthenticationValidator.PASSWORD.equals(paramName)) {
+				password = httpRequest.getParameter(paramName);
+			} else if ("type".equals(paramName)) {
+				type = httpRequest.getParameter(paramName);
+			} else if ("streamName".equals(paramName)) {
+				streamName = httpRequest.getParameter(paramName);
 			}
 		}
+		if (streamName == null) {
+			
+		}
 		// process token and / or u:p combo
-		if (token != null || (user != null && passwd != null)) {
-
+		if (token != null || (username != null && password != null)) {
 			if (appCtx == null) {
 				// XXX should we be looking for apps? validating that they exist?
 				appCtx = (ApplicationContext) request.getServletContext()
@@ -92,11 +119,52 @@ public class AuthServlet implements Filter {
 					httpResponse.sendError(500, "No application context found");
 				}
 			}
-
-			chain.doFilter(request, response);
-		} else {
-			httpResponse.sendError(401, "Unauthorized request");
+			// ensure we've got a plugin reference
+			if (plugin == null) {
+				Optional<IRed5Plugin> opt = Optional.ofNullable(PluginRegistry.getPlugin(SimpleAuthPlugin.NAME));
+				if (opt.isPresent()) {
+					plugin = (SimpleAuthPlugin) opt.get();
+				}
+			}
+			try {
+				// get the validator
+				IAuthenticationValidator validator = plugin.getAuthValidator(appCtx.getDisplayName());
+				if (validator instanceof RoundTripAuthValidator) {
+					// perform the validation via round-trip
+					JsonObject result = ((RoundTripAuthValidator) validator).authenticateOverHttp(type, username, password, token, streamName);
+					if (result.get("result").getAsBoolean()) {
+						HttpSession session = httpRequest.getSession();
+						session.setAttribute("roletype", type);
+						session.setAttribute("streamID", streamName);
+						if (result.has("url")) {
+							String url = result.get("url").getAsString();
+							session.setAttribute("signedURL", url);
+						}
+						// continue down the chain
+						chain.doFilter(request, response);
+					}
+				} else {
+					Map<String, String> paramsMap = new HashMap<>();
+					httpRequest.getParameterNames().asIterator().forEachRemaining((name) -> {
+						paramsMap.put(name, httpRequest.getParameter(name));
+					});
+					Object[] rest = new Object[1];
+					rest[0] = paramsMap;
+					if (((HTTPAuthenticator) validator).authenticate(AuthenticatorType.HTTP, httpRequest, rest)) {
+						HttpSession session = httpRequest.getSession();
+						session.setAttribute("roletype", type);
+						session.setAttribute("streamID", streamName);
+						// continue down the chain
+						chain.doFilter(request, response);
+					}
+				}
+			} catch (Exception e) {
+				// return an error
+				httpResponse.sendError(500, "Authentication failed");
+			}
 		}
+		// return an error
+		httpResponse.sendError(401, "Unauthorized request");
 	}
 
 }

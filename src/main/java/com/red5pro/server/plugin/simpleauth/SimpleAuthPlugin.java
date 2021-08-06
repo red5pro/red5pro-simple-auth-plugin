@@ -512,6 +512,34 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	}
 
 	/**
+	 * Returns the IAuthenticationValidator for a given app / scope name.
+	 * 
+	 * @param scopeName
+	 * @return IAuthenticationValidator if an AuthenticatorProvider is registered
+	 *         for the scope name, otherwise null for not found
+	 */
+	public IAuthenticationValidator getAuthValidator(String scopeName) {
+		IAuthenticationValidator authValidator = null;
+		AuthenticatorProvider authProvider = scopeAuthenticationProviders.get(scopeName);
+		if (authProvider != null) {
+			authValidator = authProvider.getValidator();
+		}
+		return authValidator;
+	}
+
+	/**
+	 * Returns the AuthenticatorProvider for a given app / scope name.
+	 * 
+	 * @param scopeName
+	 * @return AuthenticatorProvider if registered for given scope name or null if
+	 *         not found
+	 */
+	public AuthenticatorProvider getAuthProvider(String scopeName) {
+		AuthenticatorProvider authProvider = scopeAuthenticationProviders.get(scopeName);
+		return authProvider;
+	}
+
+	/**
 	 * Configures a scope/context without a custom configuration.
 	 * 
 	 * @param scope

@@ -25,15 +25,16 @@
 //
 package com.red5pro.server.plugin.simpleauth.impl;
 
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 
-import org.red5.server.api.IConnection;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 
+import org.red5.server.BaseConnection;
+import org.red5.server.api.Red5;
+
+import com.red5pro.server.plugin.simpleauth.AuthenticatorType;
+import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
 import com.red5pro.server.plugin.simpleauth.interfaces.SimpleAuthAuthenticatorAdapter;
 
 /**
@@ -52,50 +53,72 @@ import com.red5pro.server.plugin.simpleauth.interfaces.SimpleAuthAuthenticatorAd
 public class HTTPAuthenticator extends SimpleAuthAuthenticatorAdapter {
 
 	@Override
-	public boolean authenticate(IConnection connection, Object[] params) {
+	public boolean authenticate(AuthenticatorType type, Object connection, Object[] params) {
+		Red5.setConnectionLocal(new HTTPWrapperConnection(connection));
 		try {
-			Map<String, Object> map = getParametersMap(connection.getConnectParams());
-			if (!map.containsKey("username") || !map.containsKey("password")) {
-				throw new Exception("Missing connection parameter(s)");
-			}
-			String username = String.valueOf(map.get("username"));
-			String password = String.valueOf(map.get("password"));
-			Object[] rest = new Object[1];
-			rest[0] = map;
-			return source.onConnectAuthenticate(username, password, rest);
+			@SuppressWarnings("unchecked")
+			Map<String, Object> map = (Map<String, Object>) params[0];
+			String username = (String) map.get(IAuthenticationValidator.USERNAME);
+			String password = (String) map.get(IAuthenticationValidator.PASSWORD);
+			return source.onConnectAuthenticate(username, password, params);
 		} catch (Exception e) {
-			logger.error("Error authenticating connection " + e.getMessage());
+			logger.error("Error authenticating connection {}", e.getMessage());
+		} finally {
+			Red5.setConnectionLocal(null);
 		}
 		return false;
 	}
+	
+	class HTTPWrapperConnection extends BaseConnection {
 
-	/**
-	 * Extracts connections params from query string for clients and returns as a
-	 * cleaned up Map
-	 * 
-	 * @param content
-	 *            The raw query params map
-	 * @return processed parameters map
-	 */
-	private Map<String, Object> getParametersMap(Map<String, Object> content) {
-		Map<String, Object> map = new HashMap<String, Object>();
-		Iterator<Entry<String, Object>> it = content.entrySet().iterator();
-		while (it.hasNext()) {
-			Map.Entry<String, Object> pair = it.next();
-			String key = pair.getKey();
-			String value;
-			String charset = StandardCharsets.UTF_8.name();
-			try {
-				value = URLDecoder.decode(String.valueOf(pair.getValue()), charset);
-			} catch (Exception e) {
-				value = String.valueOf(pair.getValue());
-			}
-			if (key.indexOf("?") == 0) {
-				key = key.replace("?", "");
-			}
-			map.put(key, value);
+		HttpSession session;
+		
+		HTTPWrapperConnection(Object connection) {
+			super("TRANSIENT");
+			// connection here should be the HttpRequest
+			HttpServletRequest httpRequest = (HttpServletRequest) connection;
+			session = httpRequest.getSession();
 		}
-		return map;
+
+		@Override
+		public boolean setAttribute(String name, Object value) {
+			session.setAttribute(name, value);
+			return true;
+		}
+
+		@Override
+		public String getProtocol() {
+			return "HTTP";
+		}
+
+		@Override
+		public Encoding getEncoding() {
+			return Encoding.RAW;
+		}
+
+		@Override
+		public void ping() {
+		}
+
+		@Override
+		public int getLastPingTime() {
+			return 0;
+		}
+
+		@Override
+		public void setBandwidth(int mbits) {
+		}
+
+		@Override
+		public long getReadBytes() {
+			return 0;
+		}
+
+		@Override
+		public long getWrittenBytes() {
+			return 0;
+		}
+		
 	}
 
 }

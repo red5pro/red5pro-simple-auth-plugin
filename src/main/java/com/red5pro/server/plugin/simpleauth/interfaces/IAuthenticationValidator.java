@@ -35,6 +35,21 @@ package com.red5pro.server.plugin.simpleauth.interfaces;
 public interface IAuthenticationValidator {
 
 	/**
+	 * Token parameter name constant
+	 */
+	public static final String TOKEN = "token";
+
+	/**
+	 * User name parameter name constant
+	 */
+	public static final String USERNAME = "username";
+
+	/**
+	 * Password parameter name constant
+	 */
+	public static final String PASSWORD = "password";
+	
+	/**
 	 * This method is triggered when a new instance is created via bean declaration
 	 * in the
 	 * 

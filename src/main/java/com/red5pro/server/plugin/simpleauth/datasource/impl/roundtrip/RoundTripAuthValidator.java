@@ -91,11 +91,6 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	private static Logger logger = LoggerFactory.getLogger(RoundTripAuthValidator.class);
 
 	/**
-	 * Token parameter name constant
-	 */
-	public static final String TOKEN = "token";
-
-	/**
 	 * Property to store validation endpoint path (relative to root)
 	 */
 	private String validateEndPoint;
@@ -208,30 +203,23 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	@Override
 	public boolean onConnectAuthenticate(String username, String password, Object[] rest) {
 		IConnection connection = Red5.getConnectionLocal();
-
 		if (username == null || password == null) {
 			logger.error("One or more missing parameter(s). Parameter 'username' and/or 'password' not provided");
 			return false;
 		}
-
 		// just store paramters as we will be using these later
 		connection.setAttribute("username", username);
 		connection.setAttribute("password", password);
-
 		logger.debug("Parameters 'username' and 'password' stored on client connection! {}", connection);
-
 		String token = null;
-
 		if (rest.length == 1) {
 			if (rest[0] instanceof Map) {
 				@SuppressWarnings("unchecked")
 				Map<String, Object> map = (Map<String, Object>) rest[0];
-
 				// collect token if exists
 				if (map.containsKey(TOKEN)) {
 					token = String.valueOf(map.get(TOKEN));
 					connection.setAttribute("token", token);
-
 					logger.debug("Parameter 'token' stored on client connection {}", connection);
 				} else if (clientTokenRequired && !username.equals("cluster-restreamer")) {
 					logger.error("Client 'token' is required but was not provided by connection {}.", connection);
@@ -322,11 +310,11 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 					}
 					return canStream;
 				} catch (Exception e) {
-					logger.warn(type);
+					logger.warn("Exception onPublish check", e);
 					return false;
 				}
 			} else {
-				this.threadPoolExecutor.submit(new LazyAuthentication(conn, type, username, password, token, stream));
+				threadPoolExecutor.submit(new LazyAuthentication(conn, type, username, password, token, stream));
 				return true;
 			}
 		}
@@ -350,7 +338,6 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 		String password = conn.getStringAttribute("password");
 		String token = (conn.hasAttribute("token")) ? conn.getStringAttribute("token") : "";
 		String type = "subscriber";
-
 		if (password != null && username != null) {
 			if (username.equals("cluster-restreamer")) {
 				return validateClusterReStreamer(password);
@@ -361,7 +348,6 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 					if (canStream) {
 						conn.setAttribute("roletype", type);
 						conn.setAttribute("streamID", stream);
-
 						if (result.has("url")) {
 							String url = result.get("url").getAsString();
 							conn.setAttribute("signedURL", url);
@@ -369,15 +355,14 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 					}
 					return canStream;
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.warn("Exception onPlayback check", e);
 					return false;
 				}
 			} else {
-				this.threadPoolExecutor.submit(new LazyAuthentication(conn, type, username, password, token, stream));
+				threadPoolExecutor.submit(new LazyAuthentication(conn, type, username, password, token, stream));
 				return true;
 			}
 		}
-
 		return true;
 	}
 
@@ -510,7 +495,6 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 				}
 			}
 		}
-
 		return result;
 	}
 
