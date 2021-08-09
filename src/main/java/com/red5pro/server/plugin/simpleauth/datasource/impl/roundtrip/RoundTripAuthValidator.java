@@ -48,6 +48,7 @@ import org.red5.server.api.IConnection;
 import org.red5.server.api.IContext;
 import org.red5.server.api.Red5;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.plugin.PluginRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -60,6 +61,10 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.red5pro.cluster.ClusterAgent;
+import com.red5pro.cluster.ClusterConfiguration;
+import com.red5pro.plugin.Red5ProPlugin;
+import com.red5pro.server.plugin.simpleauth.SimpleAuthPlugin;
 import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.model.AuthData;
 import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.stream.security.PlaybackSecurity;
 import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.stream.security.PublishSecurity;
@@ -184,6 +189,11 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 */
 	private static final int TIMEOUT = 9000;
 
+	/**
+	 * Defines if clients can subscribe from origins
+	 */
+	private boolean allowOriginSubscribe = true;
+
 	private ExecutorService threadPoolExecutor;
 
 	/**
@@ -234,6 +244,16 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 			threadPoolExecutor = Executors.newCachedThreadPool();
 		}
 
+		SimpleAuthPlugin authPlugin = (SimpleAuthPlugin) PluginRegistry.getPlugin(SimpleAuthPlugin.NAME);
+		if (authPlugin != null) {
+			String prop = authPlugin.getConfiguration().getProperty("simpleauth.default.subscribe.from.origins");
+			try {
+				allowOriginSubscribe = Boolean.valueOf(prop);
+			} catch (Exception e) {
+				logger.warn("Invalid value found for simpleauth.default.subscribe.from.origins");
+				allowOriginSubscribe = false;
+			}
+		}
 		gson = new Gson();
 
 		if (adapter != null) {
@@ -422,8 +442,19 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 		}
 
 		if (password != null && username != null) {
+			boolean isOrigin = false;
+			ClusterAgent agent = Red5ProPlugin.getCluster();
+			if (agent != null) {
+				ClusterConfiguration config = agent.getConfiguration();
+				isOrigin = config != null && ("origin".equals(config.getNodeType().toLowerCase())
+						|| "transcoder".equals(config.getNodeType().toLowerCase()));
+			}
+
 			if (username.equals("cluster-restreamer")) {
 				return validateClusterReStreamer(password);
+			} else if (!allowOriginSubscribe && isOrigin) {
+				logger.warn("Subscribe sessions on origin and transcoder nodes are prohibited");
+				return false;
 			} else if (!this.lazyAuth) {
 				try {
 					JsonObject result = authenticateOverHttp(type, username, password, token, stream, contextPath);
