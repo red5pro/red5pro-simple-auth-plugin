@@ -254,6 +254,9 @@ public class SimpleAuthPlugin extends Red5Plugin {
 		} catch (Throwable t) {
 			log.error("Error on start", t);
 		}
+
+		String nodeType = System.getProperty("clusterNodeType", "unknown");
+		log.info("Cluster node type: {}", nodeType);
 	}
 
 	/**
