@@ -33,8 +33,13 @@ import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
  * using the different properties.
  * 
  * You can create your own custom validator and pass it to the plugin via the
- * <tt>Configuration</tt>. To know more about creating a custom validator,
- * extending the plugin, configurations and more see <a href=
+ * 
+ * <pre>
+ * Configuration
+ * </pre>
+ * 
+ * . To know more about creating a custom validator, extending the plugin,
+ * configurations and more see <a href=
  * "https://www.red5pro.com/docs/server/authplugin.html#plugin-configuration">Documentation</a>.
  * 
  * @author Rajdeep Rath
@@ -85,6 +90,50 @@ public class Configuration {
 	 * default value
 	 */
 	private boolean rtcUpdated;
+
+	/**
+	 * Property to enable or disable SRT authentication
+	 */
+	private boolean srt;
+
+	/**
+	 * Property to check if the <code>srt</code> property was changed beyond its
+	 * default value
+	 */
+	private boolean srtUpdated;
+
+	/**
+	 * Property to enable or disable MpegTs authentication
+	 */
+	private boolean mpegts;
+
+	/**
+	 * Property to check if the <code>mpegts</code> property was changed beyond its
+	 * default value
+	 */
+	private boolean mpegtsUpdated;
+
+	/**
+	 * Property to enable or disable HTTP authentication
+	 */
+	private boolean http;
+
+	/**
+	 * Property to check if the <code>http</code> property was changed beyond its
+	 * default value
+	 */
+	private boolean httpUpdated;
+
+	/**
+	 * Property to enable or disable WebSocket authentication
+	 */
+	private boolean ws;
+
+	/**
+	 * Property to check if the <code>ws</code> property was changed beyond its
+	 * default value
+	 */
+	private boolean wsUpdated;
 
 	/**
 	 * Property to enable or disable params via query string for RTMP clients
@@ -147,8 +196,10 @@ public class Configuration {
 	 *            The boolean value to set
 	 */
 	public void setActive(boolean active) {
-		this.active = active;
-		this.activeUpdated = true;
+		if (this.active != active) {
+			this.active = active;
+			this.activeUpdated = true;
+		}
 	}
 
 	/**
@@ -161,7 +212,7 @@ public class Configuration {
 	}
 
 	/**
-	 * Sets the IAuthenticationValidator for thsi configuration
+	 * Sets the IAuthenticationValidator for this configuration
 	 * 
 	 * @param validator
 	 *            A IAuthenticationValidator object
@@ -186,8 +237,10 @@ public class Configuration {
 	 *            The boolean value to set to enable or disable rtmp authentication
 	 */
 	public void setRtmp(boolean rtmp) {
-		this.rtmp = rtmp;
-		this.rtmpUpdated = true;
+		if (this.rtmp != rtmp) {
+			this.rtmp = rtmp;
+			this.rtmpUpdated = true;
+		}
 	}
 
 	/**
@@ -206,8 +259,10 @@ public class Configuration {
 	 *            The boolean value to set to enable or disable rtsp authentication
 	 */
 	public void setRtsp(boolean rtsp) {
-		this.rtsp = rtsp;
-		this.rtspUpdated = true;
+		if (this.rtsp != rtsp) {
+			this.rtsp = rtsp;
+			this.rtspUpdated = true;
+		}
 	}
 
 	/**
@@ -226,8 +281,99 @@ public class Configuration {
 	 *            The boolean value to set to enable or disable rtc authentication
 	 */
 	public void setRtc(boolean rtc) {
-		this.rtc = rtc;
-		this.rtcUpdated = true;
+		if (this.rtc != rtc) {
+			this.rtc = rtc;
+			this.rtcUpdated = true;
+		}
+	}
+
+	/**
+	 * Returns the value of <code>srt</code>
+	 * 
+	 * @return true if SRT authentication is enabled otherwise false
+	 */
+	public boolean isSrt() {
+		return srt;
+	}
+
+	/**
+	 * Sets the the value of <code>srt</code>
+	 * 
+	 * @param srt
+	 *            The boolean value to set to enable or disable srt authentication
+	 */
+	public void setSrt(boolean srt) {
+		if (this.srt != srt) {
+			this.srt = srt;
+			this.srtUpdated = true;
+		}
+	}
+
+	/**
+	 * Returns the value of <code>mpegts</code>
+	 * 
+	 * @return true if MpegTs authentication is enabled otherwise false
+	 */
+	public boolean isMpegts() {
+		return mpegts;
+	}
+
+	/**
+	 * Sets the the value of <code>mpegts</code>
+	 * 
+	 * @param mpegts
+	 *            The boolean value to set to enable or disable mpegts
+	 *            authentication
+	 */
+	public void setMpegts(boolean mpegts) {
+		if (this.mpegts != mpegts) {
+			this.mpegts = mpegts;
+			this.mpegtsUpdated = true;
+		}
+	}
+
+	/**
+	 * Returns the value of <code>http</code>
+	 * 
+	 * @return true if Http authentication is enabled otherwise false
+	 */
+	public boolean isHttp() {
+		return http;
+	}
+
+	/**
+	 * Sets the the value of <code>http</code>
+	 * 
+	 * @param http
+	 *            The boolean value to set to enable or disable http authentication
+	 */
+	public void setHttp(boolean http) {
+		if (this.http != http) {
+			this.http = http;
+			this.httpUpdated = true;
+		}
+	}
+
+	/**
+	 * Returns the value of <code>ws</code>
+	 * 
+	 * @return true if Ws authentication is enabled otherwise false
+	 */
+	public boolean isWs() {
+		return ws;
+	}
+
+	/**
+	 * Sets the the value of <code>ws</code>
+	 * 
+	 * @param ws
+	 *            The boolean value to set to enable or disable ws authentication
+	 */
+	public void setWs(boolean ws) {
+		if (this.ws != ws) {
+			this.ws = ws;
+			this.wsUpdated = true;
+		}
 	}
 
 	/**
@@ -300,6 +446,16 @@ public class Configuration {
 	 */
 	protected boolean isRtcUpdated() {
 		return rtcUpdated;
+	}
+
+	/**
+	 * Returns the value of <code>wsUpdated</code>
+	 * 
+	 * @return true if ws authentication state was changed beyond default otherwise
+	 *         false
+	 */
+	protected boolean isWsUpdated() {
+		return wsUpdated;
 	}
 
 	/**
