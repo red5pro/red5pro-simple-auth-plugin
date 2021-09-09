@@ -31,14 +31,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.red5.server.api.IConnection;
 import org.red5.server.api.Red5;
 
 import com.red5pro.server.plugin.simpleauth.interfaces.SimpleAuthAuthenticatorAdapter;
-
-import jdk.internal.org.jline.utils.Log;
 
 /**
  * This class is a authenticator implementation for SRT and is based on
