@@ -64,7 +64,7 @@ public class WebSocketAuthenticator extends SimpleAuthAuthenticatorAdapter {
 			rest[0] = map;
 			return source.onConnectAuthenticate(username, password, rest);
 		} catch (Exception e) {
-			logger.error("Error authenticating connection " + e.getMessage());
+			logger.error("Error authenticating connection {}", e.getMessage());
 		}
 		return false;
 	}

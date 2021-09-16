@@ -163,18 +163,16 @@ public class Red5ProFileAuthenticationValidator implements IAuthenticationValida
 			if (logger.isDebugEnabled()) {
 				logger.debug("Authenticating connection for username " + username + " and password " + password);
 			}
-
 			if (authInformation.containsKey(username)) {
 				String pass = String.valueOf(authInformation.getProperty(username));
 				if (pass.equalsIgnoreCase(password)) {
 					return true;
 				}
 			}
-			return false;
 		} catch (Exception e) {
-			logger.error("Error reading credentials : " + e.getMessage());
-			return false;
+			logger.error("Error reading credentials : {}", e.getMessage());
 		}
+		return false;
 	}
 
 	/**

@@ -34,6 +34,7 @@ import java.util.concurrent.Executors;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -204,11 +205,12 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	public boolean onConnectAuthenticate(String username, String password, Object[] rest) {
 		logger.trace("onConnectAuthenticate - username: {} password: {} rest: {}", username, password, rest[0]);
 		IConnection connection = Red5.getConnectionLocal();
-		if (username == null || password == null) {
+		// check for blank and/or "undefined"
+		if (StringUtils.isBlank(username) || StringUtils.isBlank(password) || "undefined".equals(username) || "undefined".equals(password)) {
 			logger.error("One or more missing parameter(s). Parameter 'username' and/or 'password' not provided");
 			return false;
 		}
-		// just store paramters as we will be using these later
+		// just store parameters as we will be using these later
 		connection.setAttribute("username", username);
 		connection.setAttribute("password", password);
 		logger.debug("Parameters 'username' and 'password' stored on client connection! {}", connection);
@@ -398,7 +400,7 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 
 			client = HttpClients.createDefault();
 
-			HttpPost httpPost = new HttpPost(this.protocol + this.host + ":" + this.port + this.validateEndPoint);
+			HttpPost httpPost = new HttpPost(protocol + host + ":" + port + validateEndPoint);
 
 			StringEntity entity = new StringEntity(json);
 			httpPost.setEntity(entity);
@@ -431,7 +433,6 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 				}
 			}
 		}
-
 		return result;
 	}
 
@@ -463,7 +464,7 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 
 			client = HttpClients.createDefault();
 
-			HttpPost httpPost = new HttpPost(this.protocol + this.host + ":" + this.port + this.invalidateEndPoint);
+			HttpPost httpPost = new HttpPost(protocol + host + ":" + port + invalidateEndPoint);
 			StringEntity entity = new StringEntity(json);
 			httpPost.setEntity(entity);
 			httpPost.setHeader("Accept", "application/json");
@@ -557,12 +558,10 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	public void appDisconnect(IConnection conn) {
 		if (conn.hasAttribute("roletype") && conn.getStringAttribute("roletype").equals("publisher")
 				&& conn.hasAttribute("streamID") && conn.hasAttribute("username") && conn.hasAttribute("password")) {
-
 			String username = conn.getStringAttribute("username");
 			String password = conn.getStringAttribute("password");
 			String streamID = conn.getStringAttribute("streamID");
 			String token = conn.getStringAttribute("token");
-
 			if (invalidateEndPoint != null && invalidateEndPoint.length() > 3) {
 				invalidateCredentialsOverHttp(username, password, token, streamID);
 			}
