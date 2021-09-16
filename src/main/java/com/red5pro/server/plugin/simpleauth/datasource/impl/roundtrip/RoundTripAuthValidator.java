@@ -206,7 +206,8 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 		logger.trace("onConnectAuthenticate - username: {} password: {} rest: {}", username, password, rest[0]);
 		IConnection connection = Red5.getConnectionLocal();
 		// check for blank and/or "undefined"
-		if (StringUtils.isBlank(username) || StringUtils.isBlank(password) || "undefined".equals(username) || "undefined".equals(password)) {
+		if (StringUtils.isBlank(username) || StringUtils.isBlank(password) || "undefined".equals(username)
+				|| "undefined".equals(password)) {
 			logger.error("One or more missing parameter(s). Parameter 'username' and/or 'password' not provided");
 			return false;
 		}

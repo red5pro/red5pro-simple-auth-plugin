@@ -63,127 +63,132 @@ import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
  */
 public class AuthServlet implements Filter {
 
-    private static Logger log = LoggerFactory.getLogger(AuthServlet.class);
+	private static Logger log = LoggerFactory.getLogger(AuthServlet.class);
 
-    private volatile ApplicationContext appCtx;
+	private volatile ApplicationContext appCtx;
 
-    private SimpleAuthPlugin plugin;
+	private SimpleAuthPlugin plugin;
 
-    @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
-        Optional<IRed5Plugin> opt = Optional.ofNullable(PluginRegistry.getPlugin(SimpleAuthPlugin.NAME));
-        if (opt.isPresent()) {
-            plugin = (SimpleAuthPlugin) opt.get();
-        }
-    }
+	@Override
+	public void init(FilterConfig filterConfig) throws ServletException {
+		Optional<IRed5Plugin> opt = Optional.ofNullable(PluginRegistry.getPlugin(SimpleAuthPlugin.NAME));
+		if (opt.isPresent()) {
+			plugin = (SimpleAuthPlugin) opt.get();
+		}
+	}
 
-    @Override
-    public void destroy() {
-    }
+	@Override
+	public void destroy() {
+	}
 
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        HttpServletRequest httpRequest = (HttpServletRequest) request;
-        HttpServletResponse httpResponse = (HttpServletResponse) response;
-        // XXX should we check / expect any headers?
+	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+			throws IOException, ServletException {
+		HttpServletRequest httpRequest = (HttpServletRequest) request;
+		HttpServletResponse httpResponse = (HttpServletResponse) response;
+		// XXX should we check / expect any headers?
 
-        // XXX check for user/passwd and / or just a token
-        String username = null, password = null, token = "", type = "subscriber";
-        // if stream name doesnt come via params get it from the url minus any extension
-        // like m3u8, ts, etc
-        String streamName = null;
-        Iterator<String> paramNames = httpRequest.getParameterNames().asIterator();
-        while (paramNames.hasNext()) {
-            String paramName = paramNames.next();
-            if (IAuthenticationValidator.TOKEN.equals(paramName)) {
-                token = httpRequest.getParameter(paramName);
-            } else if (IAuthenticationValidator.USERNAME.equals(paramName)) {
-                username = httpRequest.getParameter(paramName);
-            } else if (IAuthenticationValidator.PASSWORD.equals(paramName)) {
-                password = httpRequest.getParameter(paramName);
-            } else if ("type".equals(paramName)) {
-                type = httpRequest.getParameter(paramName);
-            } else if ("streamName".equals(paramName)) {
-                streamName = httpRequest.getParameter(paramName);
-            }
-        }
-        // process token and / or u:p combo, check for blank and/or "undefined"
-        if (StringUtils.isNotBlank(token) || (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password) && !"undefined".equals(username) && !"undefined".equals(password))) {
-            if (appCtx == null) {
-                // XXX should we be looking for apps? validating that they exist?
-                appCtx = (ApplicationContext) request.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-                // if theres no context then this is not running in a red5 app
-                if (appCtx == null) {
-                    // return an error
-                    httpResponse.sendError(500, "No application context found");
-                }
-                // log.info("App context: {}", appCtx.getDisplayName());
-            }
-            // use one level higher than MultithreadedAppAdapter since we only need the scope
-            StatefulScopeWrappingAdapter app = (StatefulScopeWrappingAdapter) appCtx.getBean("web.handler");
-            // applications scope
-            IScope appScope = app.getScope();
-            log.debug("Application scope: {}", appScope);
-            String scopeName = appScope.getName();
-            // ensure we've got a stream name
-            if (streamName == null) {
-                // get the request uri
-                String requestedURI = httpRequest.getRequestURI();
-                log.debug("Request URI: {}", requestedURI); // ex: /live/stream1.m3u8
-                String strippedURI = requestedURI.substring(requestedURI.lastIndexOf('/') + 1);
-                String[] parts = strippedURI.split("\\.|_");
-                streamName = parts[0];
-            }
-            log.debug("Stream name: {}", streamName);
-            // ensure we've got a plugin reference
-            if (plugin == null) {
-                Optional<IRed5Plugin> opt = Optional.ofNullable(PluginRegistry.getPlugin(SimpleAuthPlugin.NAME));
-                if (opt.isPresent()) {
-                    plugin = (SimpleAuthPlugin) opt.get();
-                }
-            }
-            try {
-                // use the http session for storage of params etc
-                HttpSession session = httpRequest.getSession();
-                // get the validator
-                IAuthenticationValidator validator = plugin.getAuthValidator(scopeName);
-                if (validator instanceof RoundTripAuthValidator) {
-                    log.debug("Using RoundTripAuthValidator");
-                    // perform the validation via round-trip
-                    JsonObject result = ((RoundTripAuthValidator) validator).authenticateOverHttp(type, username, password, token, streamName);
-                    if (result.get("result").getAsBoolean()) {
-                        session.setAttribute("roletype", type);
-                        session.setAttribute("streamID", streamName);
-                        if (result.has("url")) {
-                            String url = result.get("url").getAsString();
-                            session.setAttribute("signedURL", url);
-                        }
-                        // continue down the chain
-                        chain.doFilter(request, response);
-                    }
-                } else {
-                    log.debug("Using HTTPAuthenticator");
-                    Map<String, String> paramsMap = new HashMap<>();
-                    httpRequest.getParameterNames().asIterator().forEachRemaining((name) -> {
-                        paramsMap.put(name, httpRequest.getParameter(name));
-                    });
-                    log.debug("Parameters map: {}", paramsMap);
-                    Object[] rest = new Object[1];
-                    rest[0] = paramsMap;
-                    if (((HTTPAuthenticator) validator).authenticate(AuthenticatorType.HTTP, session, rest)) {
-                        session.setAttribute("roletype", type);
-                        session.setAttribute("streamID", streamName);
-                        // continue down the chain
-                        chain.doFilter(request, response);
-                    }
-                }
-            } catch (Exception e) {
-                // return an error
-                httpResponse.sendError(500, "Authentication failed");
-            }
-        } else {
-            // return an error
-            httpResponse.sendError(401, "Unauthorized request");
-        }
-    }
+		// XXX check for user/passwd and / or just a token
+		String username = null, password = null, token = "", type = "subscriber";
+		// if stream name doesnt come via params get it from the url minus any extension
+		// like m3u8, ts, etc
+		String streamName = null;
+		Iterator<String> paramNames = httpRequest.getParameterNames().asIterator();
+		while (paramNames.hasNext()) {
+			String paramName = paramNames.next();
+			if (IAuthenticationValidator.TOKEN.equals(paramName)) {
+				token = httpRequest.getParameter(paramName);
+			} else if (IAuthenticationValidator.USERNAME.equals(paramName)) {
+				username = httpRequest.getParameter(paramName);
+			} else if (IAuthenticationValidator.PASSWORD.equals(paramName)) {
+				password = httpRequest.getParameter(paramName);
+			} else if ("type".equals(paramName)) {
+				type = httpRequest.getParameter(paramName);
+			} else if ("streamName".equals(paramName)) {
+				streamName = httpRequest.getParameter(paramName);
+			}
+		}
+		// process token and / or u:p combo, check for blank and/or "undefined"
+		if (StringUtils.isNotBlank(token) || (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)
+				&& !"undefined".equals(username) && !"undefined".equals(password))) {
+			if (appCtx == null) {
+				// XXX should we be looking for apps? validating that they exist?
+				appCtx = (ApplicationContext) request.getServletContext()
+						.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+				// if theres no context then this is not running in a red5 app
+				if (appCtx == null) {
+					// return an error
+					httpResponse.sendError(500, "No application context found");
+				}
+				// log.info("App context: {}", appCtx.getDisplayName());
+			}
+			// use one level higher than MultithreadedAppAdapter since we only need the
+			// scope
+			StatefulScopeWrappingAdapter app = (StatefulScopeWrappingAdapter) appCtx.getBean("web.handler");
+			// applications scope
+			IScope appScope = app.getScope();
+			log.debug("Application scope: {}", appScope);
+			String scopeName = appScope.getName();
+			// ensure we've got a stream name
+			if (streamName == null) {
+				// get the request uri
+				String requestedURI = httpRequest.getRequestURI();
+				log.debug("Request URI: {}", requestedURI); // ex: /live/stream1.m3u8
+				String strippedURI = requestedURI.substring(requestedURI.lastIndexOf('/') + 1);
+				String[] parts = strippedURI.split("\\.|_");
+				streamName = parts[0];
+			}
+			log.debug("Stream name: {}", streamName);
+			// ensure we've got a plugin reference
+			if (plugin == null) {
+				Optional<IRed5Plugin> opt = Optional.ofNullable(PluginRegistry.getPlugin(SimpleAuthPlugin.NAME));
+				if (opt.isPresent()) {
+					plugin = (SimpleAuthPlugin) opt.get();
+				}
+			}
+			try {
+				// use the http session for storage of params etc
+				HttpSession session = httpRequest.getSession();
+				// get the validator
+				IAuthenticationValidator validator = plugin.getAuthValidator(scopeName);
+				if (validator instanceof RoundTripAuthValidator) {
+					log.debug("Using RoundTripAuthValidator");
+					// perform the validation via round-trip
+					JsonObject result = ((RoundTripAuthValidator) validator).authenticateOverHttp(type, username,
+							password, token, streamName);
+					if (result.get("result").getAsBoolean()) {
+						session.setAttribute("roletype", type);
+						session.setAttribute("streamID", streamName);
+						if (result.has("url")) {
+							String url = result.get("url").getAsString();
+							session.setAttribute("signedURL", url);
+						}
+						// continue down the chain
+						chain.doFilter(request, response);
+					}
+				} else {
+					log.debug("Using HTTPAuthenticator");
+					Map<String, String> paramsMap = new HashMap<>();
+					httpRequest.getParameterNames().asIterator().forEachRemaining((name) -> {
+						paramsMap.put(name, httpRequest.getParameter(name));
+					});
+					log.debug("Parameters map: {}", paramsMap);
+					Object[] rest = new Object[1];
+					rest[0] = paramsMap;
+					if (((HTTPAuthenticator) validator).authenticate(AuthenticatorType.HTTP, session, rest)) {
+						session.setAttribute("roletype", type);
+						session.setAttribute("streamID", streamName);
+						// continue down the chain
+						chain.doFilter(request, response);
+					}
+				}
+			} catch (Exception e) {
+				// return an error
+				httpResponse.sendError(500, "Authentication failed");
+			}
+		} else {
+			// return an error
+			httpResponse.sendError(401, "Unauthorized request");
+		}
+	}
 
 }
