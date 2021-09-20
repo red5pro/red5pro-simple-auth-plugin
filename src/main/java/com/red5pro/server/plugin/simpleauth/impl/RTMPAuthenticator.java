@@ -33,37 +33,23 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.red5.server.api.IConnection;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
-import com.red5pro.server.plugin.simpleauth.interfaces.ISimpleAuthAuthenticator;
+import com.red5pro.server.plugin.simpleauth.interfaces.SimpleAuthAuthenticatorAdapter;
 import com.red5pro.server.plugin.simpleauth.utils.Utils;
 
 /**
  * This class is a authenticator implementation of
- * <tt>ISimpleAuthAuthenticator</tt>, which is used to handle authentication for
- * RTMP clients.
+ * 
+ * <pre>
+ * ISimpleAuthAuthenticator
+ * </pre>
+ * 
+ * , which is used to handle authentication for RTMP clients.
  * 
  * @author Rajdeep Rath
  *
  */
-public class RTMPAuthenticator implements ISimpleAuthAuthenticator {
-
-	/**
-	 * Logger
-	 */
-	private static Logger logger = LoggerFactory.getLogger(RTMPAuthenticator.class);
-
-	/**
-	 * The IAuthenticationValidator object for this authenticator
-	 */
-	private IAuthenticationValidator source;
-
-	/**
-	 * Flag to enable/disable connection params check on query params
-	 */
-	private boolean allowQueryParams;
+public class RTMPAuthenticator extends SimpleAuthAuthenticatorAdapter {
 
 	/**
 	 * List of rtmp agents. Default must be *
@@ -74,7 +60,6 @@ public class RTMPAuthenticator implements ISimpleAuthAuthenticator {
 	 * Constructor for RTMPAuthenticator
 	 */
 	public RTMPAuthenticator() {
-
 	}
 
 	/**
@@ -100,24 +85,6 @@ public class RTMPAuthenticator implements ISimpleAuthAuthenticator {
 		this.allowedRtmpAgents = allowedRtmpAgents;
 	}
 
-	/**
-	 * Authenticator entry point
-	 */
-	public void initialize() {
-		// initialization tasks
-		logger.debug("RTMPAuthenticator initialized");
-	}
-
-	@Override
-	public void setDataSource(IAuthenticationValidator source) {
-		this.source = source;
-	}
-
-	@Override
-	public IAuthenticationValidator getDataSource() {
-		return source;
-	}
-
 	@Override
 	public boolean authenticate(IConnection connection, Object[] params) {
 		try {
@@ -125,16 +92,14 @@ public class RTMPAuthenticator implements ISimpleAuthAuthenticator {
 			String password = null;
 			Object[] rest = null;
 			String flashVer = null;
-
 			Map<String, Object> connMap = connection.getConnectParams();// .get("flashVer");
-
-			if (connMap.containsKey("flashVer"))
+			if (connMap.containsKey("flashVer")) {
 				flashVer = String.valueOf(connMap.get("flashVer"));
-
+			}
 			boolean validAgent = validateAgent(flashVer);
-			if (!validAgent)
+			if (!validAgent) {
 				throw new Exception("Invalid / unallowed agent type " + flashVer);
-
+			}
 			if (!allowQueryParams) {
 				if (params.length == 0 || params.length < 2) {
 					// no arguments passed
@@ -143,14 +108,12 @@ public class RTMPAuthenticator implements ISimpleAuthAuthenticator {
 					// arguments passed
 					username = URLDecoder.decode(String.valueOf(params[0]), "UTF-8");
 					password = URLDecoder.decode(String.valueOf(params[1]), "UTF-8");
-
 					rest = Arrays.copyOf(params, params.length);
 				}
 			} else {
 				try {
 					// we wont look at arguments at all if {allowQueryParams} is enabled
 					Map<String, Object> map = getParametersMap(connection.getConnectParams());
-
 					// Handling a cluster-restreamer connection
 					if (map.containsKey("cluster-restreamer-context") && map.containsKey("cluster-restreamer-name")) {
 						if (map.containsKey("restreamer")) {
@@ -165,34 +128,29 @@ public class RTMPAuthenticator implements ISimpleAuthAuthenticator {
 							}
 						}
 					} else {
-						if (!map.containsKey("username") || !map.containsKey("password"))
+						if (!map.containsKey("username") || !map.containsKey("password")) {
 							throw new Exception("Missing connection parameter(s)");
-
+						}
 						username = URLDecoder.decode(String.valueOf(map.get("username")), "UTF-8");
 						password = URLDecoder.decode(String.valueOf(map.get("password")), "UTF-8");
 					}
-
 					rest = new Object[1];
 					rest[0] = map;
 				} catch (Exception e) {
-					if (params.length == 0 || params.length < 2)
+					if (params.length == 0 || params.length < 2) {
 						throw new Exception("Missing connection parameter(s)");
-
+					}
 					// arguments found
 					username = URLDecoder.decode(String.valueOf(params[0]), "UTF-8");
 					password = URLDecoder.decode(String.valueOf(params[1]), "UTF-8");
-
 					rest = Arrays.copyOf(params, params.length);
 				}
 			}
-
 			return source.onConnectAuthenticate(username, password, rest);
 		} catch (Exception e) {
-			logger.error("Error authenticating connection " + e.getMessage());
+			logger.error("Error authenticating connection {}", e.getMessage());
 		}
-
 		return false;
-
 	}
 
 	/**
@@ -210,27 +168,23 @@ public class RTMPAuthenticator implements ISimpleAuthAuthenticator {
 			Map.Entry<String, Object> pair = it.next();
 			String key = pair.getKey();
 			Object value = pair.getValue();
-
 			if (key.equals("queryString")) {
 				Map<String, Object> qmap = new HashMap<String, Object>();
 				String[] parameters = String.valueOf(value).split("&");
 				for (int i = 0; i < parameters.length; i++) {
 					String[] param = String.valueOf(parameters[i]).split("=");
 					String name = param[0];
-					if (name.indexOf("?") == 0)
+					if (name.indexOf("?") == 0) {
 						name = name.replace("?", "");
+					}
 					String val = param[1];
 					qmap.put(name, val);
 				}
-
 				map.putAll(qmap);
 			}
-
 			map.put(key, value);
 		}
-
 		return map;
-
 	}
 
 	/**
@@ -253,18 +207,7 @@ public class RTMPAuthenticator implements ISimpleAuthAuthenticator {
 				}
 			}
 		}
-
 		return false;
-	}
-
-	@Override
-	public boolean isAllowQueryParams() {
-		return allowQueryParams;
-	}
-
-	@Override
-	public void setAllowQueryParams(boolean allowQueryParams) {
-		this.allowQueryParams = allowQueryParams;
 	}
 
 	/**

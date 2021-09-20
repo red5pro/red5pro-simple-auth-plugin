@@ -25,40 +25,38 @@
 //
 package com.red5pro.server.plugin.simpleauth.impl;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.red5.server.api.IConnection;
 
 import com.red5pro.server.plugin.simpleauth.interfaces.SimpleAuthAuthenticatorAdapter;
 
 /**
- * This class is a authenticator implementation of
+ * This class is a authenticator implementation for SRT and is based on
  * 
  * <pre>
- * ISimpleAuthAuthenticator
+ * RTCAuthAuthenticator
  * </pre>
  * 
- * , which is used to handle authentication for RTSP clients.
+ * , which is used to handle authentication for WebRTC clients.
  * 
  * @author Rajdeep Rath
+ * @author Paul Gregoire
  *
  */
-public class RTSPAuthenticator extends SimpleAuthAuthenticatorAdapter {
+public class WebSocketAuthenticator extends SimpleAuthAuthenticatorAdapter {
 
 	@Override
 	public boolean authenticate(IConnection connection, Object[] params) {
 		try {
-			if (params.length == 0 || params[0] == null) {
-				throw new Exception("Missing connection parameter(s)");
-			}
-			Map<String, Object> map = new HashMap<String, Object>();
-			for (int i = 0; i < params.length; i++) {
-				String[] param = String.valueOf(params[i]).split("=");
-				map.put(param[0], param[1]);
-			}
+			Map<String, Object> map = getParametersMap(connection.getConnectParams());
 			if (!map.containsKey("username") || !map.containsKey("password")) {
-				throw new Exception("Missing authentication parameter(s)");
+				throw new Exception("Missing connection parameter(s)");
 			}
 			String username = String.valueOf(map.get("username"));
 			String password = String.valueOf(map.get("password"));
@@ -69,6 +67,35 @@ public class RTSPAuthenticator extends SimpleAuthAuthenticatorAdapter {
 			logger.error("Error authenticating connection {}", e.getMessage());
 		}
 		return false;
+	}
+
+	/**
+	 * Extracts connections params from query string for clients and returns as a
+	 * cleaned up Map
+	 * 
+	 * @param content
+	 *            The raw query params map
+	 * @return processed parameters map
+	 */
+	private Map<String, Object> getParametersMap(Map<String, Object> content) {
+		Map<String, Object> map = new HashMap<String, Object>();
+		Iterator<Entry<String, Object>> it = content.entrySet().iterator();
+		while (it.hasNext()) {
+			Map.Entry<String, Object> pair = it.next();
+			String key = pair.getKey();
+			String value;
+			String charset = StandardCharsets.UTF_8.name();
+			try {
+				value = URLDecoder.decode(String.valueOf(pair.getValue()), charset);
+			} catch (Exception e) {
+				value = String.valueOf(pair.getValue());
+			}
+			if (key.indexOf("?") == 0) {
+				key = key.replace("?", "");
+			}
+			map.put(key, value);
+		}
+		return map;
 	}
 
 }
