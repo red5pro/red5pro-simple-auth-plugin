@@ -25,12 +25,20 @@
 //
 package com.red5pro.server.plugin.simpleauth.utils;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
 import org.red5.server.api.IConnection;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.NodeList;
 
 /**
  * Utility class
@@ -96,5 +104,36 @@ public class Utils {
 
 		return map;
 
+	}
+
+	/**
+	 * Special method to help validate cluster restreamer using the cluster password
+	 *
+	 * @param password
+	 *            The provided password to validate
+	 * @return Boolean true if validation is successful, otherwise false
+	 */
+	public static boolean validateClusterReStreamer(String password) {
+		// check that password match with cluster password
+		File file = new File(System.getProperty("red5.config_root") + "/cluster.xml");
+		DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+		try {
+			DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+			Document document = documentBuilder.parse(file);
+
+			Element pageElement = (Element) document.getElementsByTagName("beans").item(0);
+			NodeList result = pageElement.getElementsByTagName("property");
+
+			NamedNodeMap s = result.item(1).getAttributes();
+			if (s.item(1).getNodeValue().equals(password)) {
+				return true;
+			} else {
+				return false;
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
 	}
 }
