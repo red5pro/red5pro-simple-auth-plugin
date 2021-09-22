@@ -33,7 +33,6 @@ import java.util.concurrent.Executors;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -49,18 +48,19 @@ import org.red5.server.api.IConnection;
 import org.red5.server.api.IContext;
 import org.red5.server.api.Red5;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.plugin.PluginRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.red5pro.server.plugin.simpleauth.SimpleAuthPlugin;
 import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.model.AuthData;
 import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.stream.security.PlaybackSecurity;
 import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.stream.security.PublishSecurity;
@@ -87,9 +87,60 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	private static Logger logger = LoggerFactory.getLogger(RoundTripAuthValidator.class);
 
 	/**
+	 * Username parameter name constant
+	 */
+	public static final String USERNAME = "username";
+
+	/**
+	 * Password parameter name constant
+	 */
+	public static final String PASSWORD = "password";
+
+	/**
 	 * Token parameter name constant
 	 */
 	public static final String TOKEN = "token";
+
+	/**
+	 * ConnectionResponseData parameter name constant. Used by clients to provide
+	 * additional data
+	 */
+	public static final String AUTHENTICATION_RESPONSE_DATA = "authenticationResponseData";
+
+	/**
+	 * StreamId parameter name constant
+	 */
+	public static final String STREAMID = "streamID";
+
+	/**
+	 * StreamId parameter name constant
+	 */
+	public static final String ROLE_TYPE = "roletype";
+
+	/**
+	 * StreamId parameter name constant
+	 */
+	public static final String URL = "url";
+
+	/**
+	 * StreamId parameter name constant
+	 */
+	public static final String SIGNED_URL = "signedURL";
+
+	/**
+	 * Result parameter name constant
+	 */
+	public static final String RESULT = "result";
+
+	/**
+	 * Publisher parameter name constant
+	 */
+	public static final String PUBLISHER = "publisher";
+
+	/**
+	 * Publisher parameter name constant
+	 */
+	public static final String SUBSCRIBER = "subscriber";
 
 	/**
 	 * Property to store validation endpoint path (relative to root)
@@ -106,12 +157,12 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 * initially and validated in a parallel thread instead of blocking access for
 	 * authentication
 	 */
-	private boolean lazyAuth = false;
+	private boolean lazyAuth;
 
 	/**
 	 * Property to indicate whether `token` parameter is optional or mandatory
 	 */
-	private boolean clientTokenRequired = false;
+	private boolean clientTokenRequired;
 
 	/**
 	 * Red5 Context object. This is helpful in resolving resources on the file
@@ -127,12 +178,17 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	/**
 	 * Gson object for serializing/deserializing JSON
 	 */
-	private Gson gson;
+	private final Gson gson = new Gson();
 
 	/**
 	 * Defines the HTTP client timeout
 	 */
 	private static final int TIMEOUT = 9000;
+
+	/**
+	 * Defines if clients can subscribe from origins
+	 */
+	private boolean allowOriginSubscribe = true;
 
 	private ExecutorService threadPoolExecutor;
 
@@ -177,15 +233,20 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 
 	@Override
 	public void initialize() {
-
 		logger.info("initialization part");
-
-		if (this.lazyAuth) {
+		if (lazyAuth) {
 			threadPoolExecutor = Executors.newCachedThreadPool();
 		}
-
-		gson = new Gson();
-
+		SimpleAuthPlugin authPlugin = (SimpleAuthPlugin) PluginRegistry.getPlugin(SimpleAuthPlugin.NAME);
+		if (authPlugin != null) {
+			String prop = authPlugin.getConfiguration().getProperty("simpleauth.default.subscribe.from.origins");
+			try {
+				allowOriginSubscribe = Boolean.valueOf(prop);
+			} catch (Exception e) {
+				logger.warn("Invalid value found for simpleauth.default.subscribe.from.origins");
+				allowOriginSubscribe = false;
+			}
+		}
 		if (adapter != null) {
 			adapter.registerStreamPublishSecurity(new PublishSecurity(this));
 			adapter.registerStreamPlaybackSecurity(new PlaybackSecurity(this));
@@ -197,9 +258,9 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 		logger.debug("adapter = {}", adapter);
 		logger.debug("context = {}", context);
 
-		logger.debug("auth host = {}", this.host);
-		logger.debug("auth port = {}", this.port);
-		logger.debug("auth protocol = {}", this.protocol);
+		logger.debug("auth host = {}", host);
+		logger.debug("auth port = {}", port);
+		logger.debug("auth protocol = {}", protocol);
 
 		logger.debug("authEndPoint = {}", validateEndPoint);
 		logger.debug("invalidateEndPoint = {}", invalidateEndPoint);
@@ -209,29 +270,23 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	@Override
 	public boolean onConnectAuthenticate(String username, String password, Object[] rest) {
 		IConnection connection = Red5.getConnectionLocal();
-
 		if (username == null || password == null) {
 			logger.error("One or more missing parameter(s). Parameter 'username' and/or 'password' not provided");
 			return false;
 		}
-
-		// just store paramters as we will be using these later
-		connection.setAttribute("username", username);
-		connection.setAttribute("password", password);
-
+		// just store parameters as we will be using these later
+		connection.setAttribute(USERNAME, username);
+		connection.setAttribute(PASSWORD, password);
 		logger.debug("Parameters 'username' and 'password' stored on client connection! {}", connection);
-
 		String token = null;
-
 		if (rest.length == 1) {
 			if (rest[0] instanceof Map) {
+				@SuppressWarnings("unchecked")
 				Map<String, Object> map = (Map<String, Object>) rest[0];
-
 				// collect token if exists
 				if (map.containsKey(TOKEN)) {
 					token = String.valueOf(map.get(TOKEN));
-					connection.setAttribute("token", token);
-
+					connection.setAttribute(TOKEN, token);
 					logger.debug("Parameter 'token' stored on client connection {}", connection);
 				} else if (clientTokenRequired && !username.equals("cluster-restreamer")) {
 					logger.error("Client 'token' is required but was not provided by connection {}.", connection);
@@ -247,14 +302,13 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 			if (rest.length >= 3) {
 				// expect token as third param
 				token = String.valueOf(rest[2]);
-				connection.setAttribute("token", token);
+				connection.setAttribute(TOKEN, token);
 				logger.debug("Parameter 'token' stored on client connection {}", connection);
 			} else if (clientTokenRequired && !username.equals("cluster-restreamer")) {
 				logger.error("Client 'token' is required but was not provided by connection {}.", connection);
 				return false;
 			}
 		}
-
 		return true;
 	}
 
@@ -282,14 +336,11 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 				return true;
 			} else {
 				logger.error("wrong password supplied for cluster");
-				return false;
 			}
-
 		} catch (Exception e) {
-			logger.error("It was not possible to validate the cluster password");
-			e.printStackTrace();
-			return false;
+			logger.error("It was not possible to validate the cluster password", e);
 		}
+		return false;
 	}
 
 	/**
@@ -305,38 +356,45 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 * @return Boolean true if validation is successful, otherwise false
 	 */
 	public boolean onPublishAuthenticate(IConnection conn, IScope scope, String stream) {
-		String username = conn.getStringAttribute("username");
-		String password = conn.getStringAttribute("password");
-		String token = (conn.hasAttribute("token")) ? conn.getStringAttribute("token") : "";
-		String type = "publisher";
+		String username = conn.getStringAttribute(USERNAME);
+		String password = conn.getStringAttribute(PASSWORD);
+		String token = (conn.hasAttribute(TOKEN)) ? conn.getStringAttribute(TOKEN) : "";
+		String type = PUBLISHER;
+		String contextPath = conn.getScope().getContextPath();
+		if (contextPath.charAt(0) == '/') {
+			contextPath = contextPath.substring(1);
+		}
 
 		if (password != null && username != null) {
-			if (!this.lazyAuth) {
+			if (!lazyAuth) {
 				try {
-					JsonObject result = authenticateOverHttp(type, username, password, token, stream);
-					boolean canStream = result.get("result").getAsBoolean();
+					JsonObject result = authenticateOverHttp(type, username, password, token, stream, contextPath);
+					boolean canStream = result.get(RESULT).getAsBoolean();
 					if (canStream) {
-						conn.setAttribute("roletype", type);
-						conn.setAttribute("streamID", stream);
-
-						if (result.has("url")) {
-							String url = result.get("url").getAsString();
-							conn.setAttribute("signedURL", url);
+						conn.setAttribute(ROLE_TYPE, type);
+						conn.setAttribute(STREAMID, stream);
+						if (result.has(URL)) {
+							String url = result.get(URL).getAsString();
+							conn.setAttribute(SIGNED_URL, url);
 						} else {
 							logger.debug("No Signed URL supplied");
+						}
+						if (result.has(AUTHENTICATION_RESPONSE_DATA)) {
+							String url = result.get(AUTHENTICATION_RESPONSE_DATA).getAsString();
+							conn.setAttribute(AUTHENTICATION_RESPONSE_DATA, url);
 						}
 					}
 					return canStream;
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.warn("Exception onPublish check", e);
 					return false;
 				}
 			} else {
-				this.threadPoolExecutor.submit(new LazyAuthentication(conn, type, username, password, token, stream));
+				threadPoolExecutor
+						.submit(new LazyAuthentication(conn, type, username, password, token, stream, contextPath));
 				return true;
 			}
 		}
-
 		return true;
 	}
 
@@ -353,38 +411,51 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 * @return Boolean true if validation is successful, otherwise false
 	 */
 	public boolean onPlaybackAuthenticate(IConnection conn, IScope scope, String stream) {
-		String username = conn.getStringAttribute("username");
-		String password = conn.getStringAttribute("password");
-		String token = (conn.hasAttribute("token")) ? conn.getStringAttribute("token") : "";
-		String type = "subscriber";
-
+		String username = conn.getStringAttribute(USERNAME);
+		String password = conn.getStringAttribute(PASSWORD);
+		String token = (conn.hasAttribute(TOKEN)) ? conn.getStringAttribute(TOKEN) : "";
+		String type = SUBSCRIBER;
+		String contextPath = conn.getScope().getContextPath();
+		if (contextPath.charAt(0) == '/') {
+			contextPath = contextPath.substring(1);
+		}
 		if (password != null && username != null) {
+			boolean isOrigin = false;
+			// get the cluster node type via system property to prevent dependency issues
+			String nodeType = System.getProperty("clusterNodeType", "undefined");
+			isOrigin = ("origin".equals(nodeType) || "transcoder".equals(nodeType));
 			if (username.equals("cluster-restreamer")) {
 				return validateClusterReStreamer(password);
-			} else if (!this.lazyAuth) {
+			} else if (!allowOriginSubscribe && isOrigin) {
+				logger.warn("Subscribe sessions on origin and transcoder nodes are prohibited");
+				return false;
+			} else if (!lazyAuth) {
 				try {
-					JsonObject result = authenticateOverHttp(type, username, password, token, stream);
-					boolean canStream = result.get("result").getAsBoolean();
+					JsonObject result = authenticateOverHttp(type, username, password, token, stream, contextPath);
+					boolean canStream = result.get(RESULT).getAsBoolean();
 					if (canStream) {
-						conn.setAttribute("roletype", type);
-						conn.setAttribute("streamID", stream);
-
-						if (result.has("url")) {
-							String url = result.get("url").getAsString();
-							conn.setAttribute("signedURL", url);
+						conn.setAttribute(ROLE_TYPE, type);
+						conn.setAttribute(STREAMID, stream);
+						if (result.has(URL)) {
+							String url = result.get(URL).getAsString();
+							conn.setAttribute(SIGNED_URL, url);
+						}
+						if (result.has(AUTHENTICATION_RESPONSE_DATA)) {
+							String url = result.get(AUTHENTICATION_RESPONSE_DATA).getAsString();
+							conn.setAttribute(AUTHENTICATION_RESPONSE_DATA, url);
 						}
 					}
 					return canStream;
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.warn("Exception onPlayback check", e);
 					return false;
 				}
 			} else {
-				this.threadPoolExecutor.submit(new LazyAuthentication(conn, type, username, password, token, stream));
+				threadPoolExecutor
+						.submit(new LazyAuthentication(conn, type, username, password, token, stream, contextPath));
 				return true;
 			}
 		}
-
 		return true;
 	}
 
@@ -404,10 +475,10 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 *
 	 * @return JsonObject JSON payload response from the remote server
 	 */
-	public JsonObject authenticateOverHttp(String type, String username, String password, String token, String stream) {
+	public JsonObject authenticateOverHttp(String type, String username, String password, String token, String stream,
+			String contextPath) {
 		JsonObject result = null;
 		CloseableHttpClient client = null;
-
 		try {
 			AuthData data = new AuthData();
 			data.setType(type);
@@ -415,6 +486,7 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 			data.setPassword(password);
 			data.setToken(token);
 			data.setStreamID(stream);
+			data.setScope(contextPath);
 
 			String json = gson.toJson(data);
 
@@ -435,28 +507,24 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 			httpPost.setConfig(requestConfig.build());
 
 			CloseableHttpResponse response = client.execute(httpPost);
-
 			if (response.getStatusLine().getStatusCode() == 200) {
 				String responseBody = EntityUtils.toString(response.getEntity());
 				logger.info("responseBody = {}", responseBody);
-
 				JsonParser parser = new JsonParser();
 				JsonElement obj = parser.parse(responseBody);
-
 				result = obj.getAsJsonObject();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.warn("Exception attempting authentication", e);
 		} finally {
 			if (client != null) {
 				try {
 					client.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.warn("Exception in client close", e);
 				}
 			}
 		}
-
 		return result;
 	}
 
@@ -474,50 +542,46 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 *
 	 * @return JsonObject JSON payload response from the remote server
 	 */
-	public JsonObject invalidateCredentialsOverHttp(String username, String password, String token, String stream) {
+	public JsonObject invalidateCredentialsOverHttp(String username, String password, String token, String stream,
+			String contextPath) {
 		JsonObject result = null;
 		CloseableHttpClient client = null;
-
 		try {
 			AuthData data = new AuthData();
 			data.setUsername(username);
 			data.setPassword(password);
 			data.setToken(token);
 			data.setStreamID(stream);
+			data.setScope(contextPath);
 
 			String json = gson.toJson(data);
 
 			client = HttpClients.createDefault();
 
 			HttpPost httpPost = new HttpPost(this.protocol + this.host + ":" + this.port + this.invalidateEndPoint);
-
 			StringEntity entity = new StringEntity(json);
 			httpPost.setEntity(entity);
 			httpPost.setHeader("Accept", "application/json");
 			httpPost.setHeader("Content-type", "application/json");
 			CloseableHttpResponse response = client.execute(httpPost);
-
 			if (response.getStatusLine().getStatusCode() == 200) {
 				String responseBody = EntityUtils.toString(response.getEntity());
 				logger.info("responseBody = {}", responseBody);
-
 				JsonParser parser = new JsonParser();
 				JsonElement obj = parser.parse(responseBody);
-
 				result = obj.getAsJsonObject();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.warn("Exception invalidating credentials", e);
 		} finally {
 			if (client != null) {
 				try {
 					client.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.warn("Exception in client close", e);
 				}
 			}
 		}
-
 		return result;
 	}
 
@@ -529,33 +593,43 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 */
 	class LazyAuthentication implements Runnable {
 
-		String type, username, password, token, stream;
+		String type, username, password, token, stream, contextPath;
 		IConnection conn;
 
 		public LazyAuthentication(IConnection conn, String type, String username, String password, String token,
-				String stream) {
+				String stream, String contextPath) {
 			this.conn = conn;
 			this.type = type;
 			this.username = username;
 			this.password = password;
 			this.token = token;
 			this.stream = stream;
+			this.contextPath = contextPath;
 		}
 
 		@Override
 		public void run() {
 			boolean canStream = false;
-
 			try {
-				JsonObject result = authenticateOverHttp(type, username, password, token, stream);
-				canStream = result.get("result").getAsBoolean();
+				JsonObject result = authenticateOverHttp(type, username, password, token, stream, contextPath);
+				canStream = result.get(RESULT).getAsBoolean();
 				if (!canStream && conn.isConnected()) {
 					logger.warn("Closing connected client due to authentication failure");
 					conn.close();
+				} else {
+					if (result.has(URL)) {
+						String url = result.get(URL).getAsString();
+						conn.setAttribute(SIGNED_URL, url);
+					}
+					if (result.has(AUTHENTICATION_RESPONSE_DATA)) {
+						String url = result.get(AUTHENTICATION_RESPONSE_DATA).getAsString();
+						conn.setAttribute(AUTHENTICATION_RESPONSE_DATA, url);
+					}
 				}
+
 			} catch (Exception e) {
 				canStream = false;
-				e.printStackTrace();
+				logger.warn("Exception attempting authentication", e);
 			}
 		}
 	}
@@ -586,17 +660,20 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 
 	@Override
 	public void appDisconnect(IConnection conn) {
+		if (conn.hasAttribute(ROLE_TYPE) && conn.getStringAttribute(ROLE_TYPE).equals("publisher")
+				&& conn.hasAttribute(STREAMID) && conn.hasAttribute(USERNAME) && conn.hasAttribute(PASSWORD)) {
 
-		if (conn.hasAttribute("roletype") && conn.getStringAttribute("roletype").equals("publisher")
-				&& conn.hasAttribute("streamID") && conn.hasAttribute("username") && conn.hasAttribute("password")) {
-
-			String username = conn.getStringAttribute("username");
-			String password = conn.getStringAttribute("password");
-			String streamID = conn.getStringAttribute("streamID");
-			String token = conn.getStringAttribute("token");
+			String username = conn.getStringAttribute(USERNAME);
+			String password = conn.getStringAttribute(PASSWORD);
+			String streamID = conn.getStringAttribute(STREAMID);
+			String token = conn.getStringAttribute(TOKEN);
+			String contextPath = conn.getScope().getContextPath();
+			if (contextPath.charAt(0) == '/') {
+				contextPath = contextPath.substring(1);
+			}
 
 			if (invalidateEndPoint != null && invalidateEndPoint.length() > 3) {
-				invalidateCredentialsOverHttp(username, password, token, streamID);
+				invalidateCredentialsOverHttp(username, password, token, streamID, contextPath);
 			}
 		}
 	}
