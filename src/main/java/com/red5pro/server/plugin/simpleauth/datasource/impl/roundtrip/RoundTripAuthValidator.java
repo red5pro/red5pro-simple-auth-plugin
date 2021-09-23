@@ -416,7 +416,9 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 			httpPost.setConfig(requestConfig.build());
 
 			CloseableHttpResponse response = client.execute(httpPost);
-			if (response.getStatusLine().getStatusCode() == 200) {
+			int code = response.getStatusLine().getStatusCode();
+            logger.info("response code: {}", code);
+			if (code == 200) {
 				String responseBody = EntityUtils.toString(response.getEntity());
 				logger.info("responseBody = {}", responseBody);
 				JsonParser parser = new JsonParser();
