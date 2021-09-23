@@ -89,8 +89,15 @@ public class AuthServlet implements Filter {
 			throws IOException, ServletException {
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
 		HttpServletResponse httpResponse = (HttpServletResponse) response;
-        // use the http session for storage of params etc, invalidate on error
-        HttpSession session = httpRequest.getSession();
+		if (log.isDebugEnabled()) {
+    		Iterator<String> hdrNames = httpRequest.getHeaderNames().asIterator();
+    		while (hdrNames.hasNext()) {
+    			String hdrName = hdrNames.next();
+    			log.debug("Header - {} {}", hdrName, httpRequest.getHeader(hdrName));
+    		}
+		}
+		// use the http session for storage of params etc, invalidate on error
+		HttpSession session = httpRequest.getSession();
 		// XXX check for user/passwd and / or just a token
 		String username = null, password = null, token = "", type = "subscriber";
 		// if stream name doesnt come via params get it from the url minus any extension
@@ -109,6 +116,10 @@ public class AuthServlet implements Filter {
 				type = httpRequest.getParameter(paramName);
 			} else if ("streamName".equals(paramName)) {
 				streamName = httpRequest.getParameter(paramName);
+			} else {
+		        if (log.isDebugEnabled()) {
+		            log.debug("Parameter - {} {}", paramName, httpRequest.getParameter(paramName));
+		        }
 			}
 		}
 		log.info("Parameters - username: {} password: {} token: {} type: {} streamName: {}", username, password, token,
@@ -156,7 +167,7 @@ public class AuthServlet implements Filter {
 						.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 				// if theres no context then this is not running in a red5 app
 				if (appCtx == null) {
-                    session.invalidate();
+					session.invalidate();
 					// return an error
 					httpResponse.sendError(500, "No application context found");
 					return;
@@ -201,10 +212,10 @@ public class AuthServlet implements Filter {
 						}
 						// continue down the chain
 						chain.doFilter(request, response);
-                    } else {
-                        session.invalidate();
-                        // return an error
-                        httpResponse.sendError(401, "Unauthorized request via RoundTripAuth");
+					} else {
+						session.invalidate();
+						// return an error
+						httpResponse.sendError(401, "Unauthorized request via RoundTripAuth");
 					}
 				} else {
 					log.debug("Using HTTPAuthenticator");
@@ -221,18 +232,18 @@ public class AuthServlet implements Filter {
 						// continue down the chain
 						chain.doFilter(request, response);
 					} else {
-			            session.invalidate();
-			            // return an error
-			            httpResponse.sendError(401, "Unauthorized request via HTTPAuthenticator");
+						session.invalidate();
+						// return an error
+						httpResponse.sendError(401, "Unauthorized request via HTTPAuthenticator");
 					}
 				}
 			} catch (Exception e) {
-                session.invalidate();
+				session.invalidate();
 				// return an error
 				httpResponse.sendError(500, "Authentication failed");
 			}
 		} else {
-            session.invalidate();
+			session.invalidate();
 			// return an error
 			httpResponse.sendError(412, "Precondition failed");
 		}

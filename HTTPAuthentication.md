@@ -23,15 +23,28 @@ Configure the application `web.xml` to include the `AuthServlet`
 </filter>
 <filter-mapping>
     <filter-name>authServlet</filter-name>
-    <url-pattern>*.m4*</url-pattern>
-</filter-mapping>
-<filter-mapping>
-    <filter-name>authServlet</filter-name>
     <url-pattern>*.m3u8</url-pattern>
 </filter-mapping>
 <filter-mapping>
     <filter-name>authServlet</filter-name>
     <url-pattern>*.ts</url-pattern>
+</filter-mapping>
+<filter-mapping>
+    <filter-name>authServlet</filter-name>
+    <url-pattern>*.m4*</url-pattern>
+</filter-mapping>
+```
+
+**Note** Client applications which use new session requests for each file or segment, such as newer VLC apps, will not include a query string with the authentication parameters with requests beyond the first for the playlist. To prevent authentication failures after the playlist is returned to the client, the `*.ts` filter mapping has to be disabled or removed from the `web.xml`. The updated webapp config would look like so:
+
+```xml
+<filter>
+    <filter-name>authServlet</filter-name>
+    <filter-class>com.red5pro.server.plugin.simpleauth.servlet.AuthServlet</filter-class>
+</filter>
+<filter-mapping>
+    <filter-name>authServlet</filter-name>
+    <url-pattern>*.m3u8</url-pattern>
 </filter-mapping>
 ```
 
