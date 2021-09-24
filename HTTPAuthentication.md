@@ -66,6 +66,20 @@ To implement auth in StreamManager, modify the `live` webapp `web.xml`, replacin
 
 This replaces the `com.red5pro.stream.transform.mpegts.server.M3U8ListingServlet` class with `com.red5pro.server.plugin.simpleauth.servlet.M3U8ListingServlet` which provides auth vs the other which allows any request.
 
+When the branches are aligned, this easily updated section should be in the `live/WEB-INF/web.xml` file:
+
+```xml
+<!-- HLS playlist listing -->
+<servlet>
+    <servlet-name>playlists</servlet-name>
+    <servlet-class>com.red5pro.stream.transform.mpegts.server.M3U8ListingServlet</servlet-class>
+    <!-- Replace the class above to enable simple-auth -->
+    <!--
+    <servlet-class>com.red5pro.server.plugin.simpleauth.servlet.M3U8ListingServlet</servlet-class>
+    -->
+</servlet>
+```
+
 ## Quick Testing
 
 Quick test / verification
