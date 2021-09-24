@@ -1,3 +1,4 @@
+# HTTPAuthentication
 
 Configure the application `red5-web.xml` to support `http` authentication via the `simpleAuthSecurity` bean adding `<property name="http" value="true" />`. The bean looks like so:
 
@@ -47,6 +48,25 @@ Configure the application `web.xml` to include the `AuthServlet`
     <url-pattern>*.m3u8</url-pattern>
 </filter-mapping>
 ```
+
+## StreamManager
+
+To implement auth in StreamManager, modify the `live` webapp `web.xml`, replacing the standard `M3U8ListingServlet` with this entry:
+
+```xml
+<servlet>
+    <servlet-name>playlists</servlet-name>
+    <servlet-class>com.red5pro.server.plugin.simpleauth.servlet.M3U8ListingServlet</servlet-class>
+</servlet>
+<servlet-mapping>
+    <servlet-name>playlists</servlet-name>
+    <url-pattern>/playlists/*</url-pattern>
+</servlet-mapping>
+```
+
+This replaces the `com.red5pro.stream.transform.mpegts.server.M3U8ListingServlet` class with `com.red5pro.server.plugin.simpleauth.servlet.M3U8ListingServlet` which provides auth vs the other which allows any request.
+
+## Quick Testing
 
 Quick test / verification
 

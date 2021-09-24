@@ -269,6 +269,18 @@
 		</plugins>
 	</build>
 	<dependencies>
+        <dependency>
+            <groupId>com.red5pro</groupId>
+            <artifactId>red5pro-mega</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.red5pro</groupId>
+            <artifactId>red5pro-cloudstorage</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
 		<dependency>
 			<groupId>org.red5</groupId>
 			<artifactId>red5-server</artifactId>

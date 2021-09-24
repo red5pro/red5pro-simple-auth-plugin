@@ -90,11 +90,11 @@ public class AuthServlet implements Filter {
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
 		HttpServletResponse httpResponse = (HttpServletResponse) response;
 		if (log.isDebugEnabled()) {
-    		Iterator<String> hdrNames = httpRequest.getHeaderNames().asIterator();
-    		while (hdrNames.hasNext()) {
-    			String hdrName = hdrNames.next();
-    			log.debug("Header - {} {}", hdrName, httpRequest.getHeader(hdrName));
-    		}
+			Iterator<String> hdrNames = httpRequest.getHeaderNames().asIterator();
+			while (hdrNames.hasNext()) {
+				String hdrName = hdrNames.next();
+				log.debug("Header - {} {}", hdrName, httpRequest.getHeader(hdrName));
+			}
 		}
 		// use the http session for storage of params etc, invalidate on error
 		HttpSession session = httpRequest.getSession();
@@ -117,9 +117,9 @@ public class AuthServlet implements Filter {
 			} else if ("streamName".equals(paramName)) {
 				streamName = httpRequest.getParameter(paramName);
 			} else {
-		        if (log.isDebugEnabled()) {
-		            log.debug("Parameter - {} {}", paramName, httpRequest.getParameter(paramName));
-		        }
+				if (log.isDebugEnabled()) {
+					log.debug("Parameter - {} {}", paramName, httpRequest.getParameter(paramName));
+				}
 			}
 		}
 		log.info("Parameters - username: {} password: {} token: {} type: {} streamName: {}", username, password, token,
