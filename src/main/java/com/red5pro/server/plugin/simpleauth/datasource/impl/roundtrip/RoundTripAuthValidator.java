@@ -387,7 +387,9 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 * @return JsonObject JSON payload response from the remote server
 	 */
 	public JsonObject authenticateOverHttp(String type, String username, String password, String token, String stream) {
-		JsonObject result = null;
+		JsonObject result = new JsonObject();
+		// default to failed
+		result.add("result", false);
 		CloseableHttpClient client = null;
 		try {
 			AuthData data = new AuthData();
