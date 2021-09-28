@@ -60,6 +60,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.model.AuthData;
 import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.stream.security.PlaybackSecurity;
 import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.stream.security.PublishSecurity;
@@ -389,7 +390,7 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	public JsonObject authenticateOverHttp(String type, String username, String password, String token, String stream) {
 		JsonObject result = new JsonObject();
 		// default to failed
-		result.add("result", false);
+		result.add("result", new JsonPrimitive(false));
 		CloseableHttpClient client = null;
 		try {
 			AuthData data = new AuthData();
