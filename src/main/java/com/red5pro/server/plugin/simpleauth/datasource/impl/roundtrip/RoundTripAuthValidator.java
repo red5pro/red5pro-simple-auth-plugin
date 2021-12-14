@@ -205,6 +205,7 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	@Override
 	public boolean onConnectAuthenticate(String username, String password, Object[] rest) {
 		logger.trace("onConnectAuthenticate - username: {} password: {} rest: {}", username, password, rest[0]);
+		// get the connection
 		IConnection connection = Red5.getConnectionLocal();
 		// check for blank and/or "undefined"
 		if (StringUtils.isBlank(username) || StringUtils.isBlank(password) || "undefined".equals(username)

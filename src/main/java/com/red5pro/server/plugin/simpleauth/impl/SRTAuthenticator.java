@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.red5.server.api.IConnection;
+import org.red5.server.api.Red5;
 
 import com.red5pro.server.plugin.simpleauth.interfaces.SimpleAuthAuthenticatorAdapter;
 
@@ -53,6 +54,10 @@ public class SRTAuthenticator extends SimpleAuthAuthenticatorAdapter {
 
 	@Override
 	public boolean authenticate(IConnection connection, Object[] params) {
+		logger.debug("authenticate:\n{}\nparams: {}", connection, params);
+		// set connection local or std rtmp processes wont find the connection where
+		// they expect it
+		Red5.setConnectionLocal(connection);
 		try {
 			Map<String, Object> map = getParametersMap(connection.getConnectParams());
 			if (!map.containsKey("username") || !map.containsKey("password")) {

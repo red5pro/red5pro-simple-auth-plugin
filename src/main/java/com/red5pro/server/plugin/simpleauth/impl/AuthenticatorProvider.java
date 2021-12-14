@@ -26,8 +26,6 @@
 package com.red5pro.server.plugin.simpleauth.impl;
 
 import org.red5.server.api.IConnection;
-import org.red5.server.net.rtmp.RTMPMinaConnection;
-import org.red5.server.net.rtmpt.RTMPTConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -250,13 +248,8 @@ public class AuthenticatorProvider {
 		if (!enabled) {
 			return happyAuthenticator;
 		} else {
-			if (connection instanceof RTMPMinaConnection || connection instanceof RTMPTConnection) {
-				if (secureRTMP) {
-					return rtmpAuthenticator;
-				} else {
-					return happyAuthenticator;
-				}
-			} else if (connection instanceof IRTSPConnection) {
+			logger.info("getAuthenticator for {}", connection);
+			if (connection instanceof IRTSPConnection) {
 				if (secureRTSP) {
 					return rtspAuthenticator;
 				} else {
@@ -282,6 +275,13 @@ public class AuthenticatorProvider {
 				}
 			} else if (connection instanceof IConnectorShell) {
 				return happyAuthenticator;
+			} else if (connection.getClass().getName().contains("RTMP")) {
+				logger.info("RTMP based connection detected");
+				if (secureRTMP) {
+					return rtmpAuthenticator;
+				} else {
+					return happyAuthenticator;
+				}
 			} else {
 				// unknown protocol
 				logger.error("Unknown connection type {}", connection.getClass().getCanonicalName());

@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.red5.server.api.IConnection;
+import org.red5.server.api.Red5;
 
 import com.red5pro.server.plugin.simpleauth.interfaces.SimpleAuthAuthenticatorAdapter;
 
@@ -48,6 +49,10 @@ public class RTSPAuthenticator extends SimpleAuthAuthenticatorAdapter {
 
 	@Override
 	public boolean authenticate(IConnection connection, Object[] params) {
+		logger.debug("authenticate:\n{}\nparams: {}", connection, params);
+		// set connection local or std rtmp processes wont find the connection where
+		// they expect it
+		Red5.setConnectionLocal(connection);
 		try {
 			if (params.length == 0 || params[0] == null) {
 				throw new Exception("Missing connection parameter(s)");

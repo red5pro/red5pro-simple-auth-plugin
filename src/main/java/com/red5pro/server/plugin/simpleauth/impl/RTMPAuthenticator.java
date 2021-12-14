@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.red5.server.api.IConnection;
+import org.red5.server.api.Red5;
 
 import com.red5pro.server.plugin.simpleauth.interfaces.SimpleAuthAuthenticatorAdapter;
 import com.red5pro.server.plugin.simpleauth.utils.Utils;
@@ -87,6 +88,10 @@ public class RTMPAuthenticator extends SimpleAuthAuthenticatorAdapter {
 
 	@Override
 	public boolean authenticate(IConnection connection, Object[] params) {
+		logger.debug("authenticate:\n{}\nparams: {}", connection, params);
+		// set connection local or std rtmp processes wont find the connection where
+		// they expect it
+		Red5.setConnectionLocal(connection);
 		try {
 			String username = null;
 			String password = null;
@@ -148,7 +153,11 @@ public class RTMPAuthenticator extends SimpleAuthAuthenticatorAdapter {
 			}
 			return source.onConnectAuthenticate(username, password, rest);
 		} catch (Exception e) {
-			logger.error("Error authenticating connection {}", e.getMessage());
+			if (logger.isDebugEnabled()) {
+				logger.warn("Error authenticating connection", e);
+			} else {
+				logger.error("Error authenticating connection {}", e.getMessage());
+			}
 		}
 		return false;
 	}
