@@ -262,7 +262,7 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 * Special method to help validate cluster restreamer using the cluster password
 	 *
 	 * @param password
-	 *            The provided password to validate
+	 *                 The provided password to validate
 	 * @return Boolean true if validation is successful, otherwise false
 	 */
 	private boolean validateClusterReStreamer(String password) {
@@ -296,15 +296,19 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 * Authenticates a publisher connection, via remote server
 	 *
 	 * @param conn
-	 *            The IConnection object representing the connection
+	 *               The IConnection object representing the connection
 	 * @param scope
-	 *            The scope where client is attempting to publishing
+	 *               The scope where client is attempting to publishing
 	 * @param stream
-	 *            The stream name that the client is trying to publish
+	 *               The stream name that the client is trying to publish
 	 *
 	 * @return Boolean true if validation is successful, otherwise false
 	 */
 	public boolean onPublishAuthenticate(IConnection conn, IScope scope, String stream) {
+		if (this.host == null || this.host.equals("")) {
+			return true;
+		}
+
 		String username = conn.getStringAttribute("username");
 		String password = conn.getStringAttribute("password");
 		String token = (conn.hasAttribute("token")) ? conn.getStringAttribute("token") : "";
@@ -344,15 +348,19 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 * Authenticates a subscriber connection, via remote server
 	 *
 	 * @param conn
-	 *            The IConnection object representing the connection
+	 *               The IConnection object representing the connection
 	 * @param scope
-	 *            The scope where client is attempting to subscribe
+	 *               The scope where client is attempting to subscribe
 	 * @param stream
-	 *            The stream name that the client is trying to subscribe to
+	 *               The stream name that the client is trying to subscribe to
 	 *
 	 * @return Boolean true if validation is successful, otherwise false
 	 */
 	public boolean onPlaybackAuthenticate(IConnection conn, IScope scope, String stream) {
+		if (this.host == null || this.host.equals("")) {
+			return true;
+		}
+
 		String username = conn.getStringAttribute("username");
 		String password = conn.getStringAttribute("password");
 		String token = (conn.hasAttribute("token")) ? conn.getStringAttribute("token") : "";
@@ -392,15 +400,15 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 * Method to authentication/validate client via remote server over http/https
 	 *
 	 * @param type
-	 *            The client type to validate - `publisher or subscriber`
+	 *                 The client type to validate - `publisher or subscriber`
 	 * @param username
-	 *            The `username` parameter provided by the client
+	 *                 The `username` parameter provided by the client
 	 * @param password
-	 *            The `password` parameter provided by the client
+	 *                 The `password` parameter provided by the client
 	 * @param token
-	 *            The `token` parameter provided by the client
+	 *                 The `token` parameter provided by the client
 	 * @param stream
-	 *            The `stream name` for which validation is required
+	 *                 The `stream name` for which validation is required
 	 *
 	 * @return JsonObject JSON payload response from the remote server
 	 */
@@ -464,13 +472,13 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 * Method to invalidate client via remote server over http/https
 	 *
 	 * @param username
-	 *            The `username` parameter provided by the client
+	 *                 The `username` parameter provided by the client
 	 * @param password
-	 *            The `password` parameter provided by the client
+	 *                 The `password` parameter provided by the client
 	 * @param token
-	 *            The `token` parameter provided by the client
+	 *                 The `token` parameter provided by the client
 	 * @param stream
-	 *            The `stream name` for which validation is required
+	 *                 The `stream name` for which validation is required
 	 *
 	 * @return JsonObject JSON payload response from the remote server
 	 */
