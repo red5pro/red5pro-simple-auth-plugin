@@ -39,8 +39,17 @@ import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
 
 /**
  * This class is a sample implementation of the
- * <tt>IAuthenticationValidator</tt> interface. It is meant to serve as a
- * default placeholder and an example for a <tt>IAuthenticationValidator</tt>
+ * 
+ * <pre>
+ * IAuthenticationValidator
+ * </pre>
+ * 
+ * interface. It is meant to serve as a default placeholder and an example for a
+ * 
+ * <pre>
+ * IAuthenticationValidator
+ * </pre>
+ * 
  * implementation. The implementation has access to your data source which
  * provides a means to validate credentials and other parameters.
  * 
@@ -154,22 +163,24 @@ public class Red5ProFileAuthenticationValidator implements IAuthenticationValida
 			if (logger.isDebugEnabled()) {
 				logger.debug("Authenticating connection for username " + username + " and password " + password);
 			}
-
 			if (authInformation.containsKey(username)) {
 				String pass = String.valueOf(authInformation.getProperty(username));
 				if (pass.equalsIgnoreCase(password)) {
 					return true;
 				}
 			}
-			return false;
 		} catch (Exception e) {
-			logger.error("Error reading credentials : " + e.getMessage());
-			return false;
+			logger.error("Error reading credentials : {}", e.getMessage());
 		}
+		return false;
 	}
 
 	/**
-	 * Returns the value of <tt>dataSource</tt>
+	 * Returns the value of
+	 * 
+	 * <pre>
+	 * dataSource
+	 * </pre>
 	 * 
 	 * @return The string representing the datasource
 	 */
@@ -178,7 +189,11 @@ public class Red5ProFileAuthenticationValidator implements IAuthenticationValida
 	}
 
 	/**
-	 * Sets the value for <tt>dataSource</tt>
+	 * Sets the value for
+	 * 
+	 * <pre>
+	 * dataSource
+	 * </pre>
 	 * 
 	 * @param dataSource
 	 *            The string to set as the datasource
@@ -188,7 +203,11 @@ public class Red5ProFileAuthenticationValidator implements IAuthenticationValida
 	}
 
 	/**
-	 * Returns the value of <tt>authInformation</tt>
+	 * Returns the value of
+	 * 
+	 * <pre>
+	 * authInformation
+	 * </pre>
 	 * 
 	 * @return The Properties object containing authentication information
 	 */
@@ -197,7 +216,11 @@ public class Red5ProFileAuthenticationValidator implements IAuthenticationValida
 	}
 
 	/**
-	 * Sets the value of <tt>authInformation</tt>
+	 * Sets the value of
+	 * 
+	 * <pre>
+	 * authInformation
+	 * </pre>
 	 * 
 	 * @param authInformation
 	 *            The Properties object to set
@@ -207,7 +230,11 @@ public class Red5ProFileAuthenticationValidator implements IAuthenticationValida
 	}
 
 	/**
-	 * Returns the value of <tt>context</tt>
+	 * Returns the value of
+	 * 
+	 * <pre>
+	 * context
+	 * </pre>
 	 * 
 	 * @return The IContext object
 	 */
@@ -216,7 +243,11 @@ public class Red5ProFileAuthenticationValidator implements IAuthenticationValida
 	}
 
 	/**
-	 * Sets the value of <tt>context</tt>
+	 * Sets the value of
+	 * 
+	 * <pre>
+	 * context
+	 * </pre>
 	 * 
 	 * @param context
 	 *            The IContext to return

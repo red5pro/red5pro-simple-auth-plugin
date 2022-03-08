@@ -27,6 +27,8 @@ package com.red5pro.server.plugin.simpleauth.interfaces;
 
 import org.red5.server.api.IConnection;
 
+import com.red5pro.server.plugin.simpleauth.AuthenticatorType;
+
 /**
  * This interface is used to implement a authenticator. An authenticator is the
  * core implementation which knows the logic for authenticating a client,
@@ -69,6 +71,23 @@ public interface ISimpleAuthAuthenticator {
 	public boolean authenticate(IConnection connection, Object[] params);
 
 	/**
+	 * This method is called when a client tries to connect to your application.
+	 * 
+	 * @param type
+	 *            AuthenticatorType connection implementation hint
+	 * @param connection
+	 *            The Object representing the client, may not be implementation of
+	 *            IConnection
+	 * @param params
+	 *            The connection parameters provided by the client. For rtsp, rtc
+	 *            and rtmp clients (which pass params via query params) the
+	 *            parameters are available as a java Map in the first element of the
+	 *            array.
+	 * @return true if connection should be allowed, otherwise false
+	 */
+	public boolean authenticate(AuthenticatorType type, Object connection, Object[] params);
+
+	/**
 	 * Sets whether the authenticator allows connection parameters via query params
 	 * or not. This is valid for rtmp clients or only
 	 * 
@@ -85,4 +104,5 @@ public interface ISimpleAuthAuthenticator {
 	 *         false
 	 */
 	boolean isAllowQueryParams();
+
 }

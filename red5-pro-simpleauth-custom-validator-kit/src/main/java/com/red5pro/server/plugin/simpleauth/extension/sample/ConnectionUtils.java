@@ -39,19 +39,22 @@ public class ConnectionUtils {
      * Returns human readable string for a given IConnection type
      *  
      * @param connection
-     * @return
+     * @return connection type string
      */
     public static String getConnectionType(IConnection connection) {
-        String connectionClassName = connection.getClass().getCanonicalName();
-
-        if (connectionClassName.equalsIgnoreCase(RTMPCONNECTION)) {
+        if (isRTMP(connection)) {
             return "rtmp";
-        } else if (connectionClassName.equalsIgnoreCase(RTSPCONNECTION)) {
+        } else if (isRTSP(connection)) {
             return "rtsp";
-        } else if (connectionClassName.equalsIgnoreCase(RTCCONNECTION)) {
+        } else if (isRTC(connection)) {
             return "rtc";
+        } else if (isSRT(connection)) {
+            return "srt";
+        } else if (isMPEGTS(connection)) {
+            return "mpegts";
+        } else if (isHTTP(connection)) {
+            return "http";
         }
-
         return null;
     }
 
@@ -59,7 +62,7 @@ public class ConnectionUtils {
      * Returns boolean true if connection is a RTMPMinaConnection object, false otherwise
      * 
      * @param connection
-     * @return
+     * @return true if rtmp and false otherwise
      */
     public static boolean isRTMP(IConnection connection) {
         String connectionClassName = connection.getClass().getCanonicalName();
@@ -70,7 +73,7 @@ public class ConnectionUtils {
      * Returns boolean true if connection is a RTSPMinaConnection object, false otherwise
      * 
      * @param connection
-     * @return
+     * @return true if rtsp and false otherwise
      */
     public static boolean isRTSP(IConnection connection) {
         String connectionClassName = connection.getClass().getCanonicalName();
@@ -81,11 +84,41 @@ public class ConnectionUtils {
      * Returns boolean true if connection is a RTCConnection object, false otherwise
      * 
      * @param connection
-     * @return
+     * @return true if rtc and false otherwise
      */
     public static boolean isRTC(IConnection connection) {
         String connectionClassName = connection.getClass().getCanonicalName();
         return connectionClassName.equalsIgnoreCase(RTCCONNECTION);
+    }
+
+    /**
+     * Returns boolean true if connection is of ISRTConnection type, false otherwise
+     * 
+     * @param connection
+     * @return true if srt and false otherwise
+     */
+    public static boolean isSRT(IConnection connection) {
+    	return ISRTConnection.class.isAssignableFrom(connection);
+    }
+
+    /**
+     * Returns boolean true if connection is of IMPEGTSConnection type, false otherwise
+     * 
+     * @param connection
+     * @return true if mpegts and false otherwise
+     */
+    public static boolean isMPEGTS(IConnection connection) {
+    	return IMPEGTSConnection.class.isAssignableFrom(connection);
+    }    
+    
+    /**
+     * Returns boolean true if connection is HTTP based, false otherwise
+     * 
+     * @param connection
+     * @return true if http and false otherwise
+     */
+    public static boolean isHTTP(IConnection connection) {
+    	return connection.getEncoding().equals("HTTP");
     }
 
 }
