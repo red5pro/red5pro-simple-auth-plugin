@@ -25,15 +25,10 @@
 //
 package com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.stream.security;
 
-import java.util.Iterator;
-import java.util.Map;
-
 import org.red5.server.api.IConnection;
 import org.red5.server.api.Red5;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamPublishSecurity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.RoundTripAuthValidator;
 
@@ -54,17 +49,10 @@ import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.RoundTripA
  * @author Rajdeep Rath
  *
  */
-public class PublishSecurity implements IStreamPublishSecurity {
-
-	private static Logger logger = LoggerFactory.getLogger(PublishSecurity.class);
-
-	private final RoundTripAuthValidator roundTripAuthValidator;
-
-	// default response for allowed or not
-	private boolean defaultResponse = true;
+public class PublishSecurity extends SecurityAdapter implements IStreamPublishSecurity {
 
 	public PublishSecurity(RoundTripAuthValidator roundTripAuthValidator) {
-		this.roundTripAuthValidator = roundTripAuthValidator;
+		super(roundTripAuthValidator);
 	}
 
 	@Override
@@ -72,16 +60,9 @@ public class PublishSecurity implements IStreamPublishSecurity {
 		// an npe is possible farther down, if the connection isn't available here
 		IConnection connection = Red5.getConnectionLocal();
 		if (connection != null) {
-			// attrs inspection is only for debug level logging here, so we'll use a guard
-			// for optimization
-			if (logger.isDebugEnabled()) {
-				Map<String, Object> attrs = connection.getAttributes();
-				Iterator<Map.Entry<String, Object>> it = attrs.entrySet().iterator();
-				while (it.hasNext()) {
-					Map.Entry<String, Object> pair = it.next();
-					logger.debug("key : {} value : {}", pair.getKey(), pair.getValue());
-				}
-			}
+			// attrs inspection is only for debug level logging, using a guard for
+			// optimization
+			logConnectionParameters(connection);
 			return roundTripAuthValidator.onPublishAuthenticate(connection, scope, name);
 		}
 		// default publish result if a connection isn't present

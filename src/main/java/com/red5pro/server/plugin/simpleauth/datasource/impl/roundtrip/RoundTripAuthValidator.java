@@ -64,6 +64,7 @@ import com.google.gson.JsonPrimitive;
 import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.model.AuthData;
 import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.stream.security.PlaybackSecurity;
 import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.stream.security.PublishSecurity;
+import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.stream.security.SharedObjectSecurity;
 import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
 
 /**
@@ -185,21 +186,15 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 		if (adapter != null) {
 			adapter.registerStreamPublishSecurity(new PublishSecurity(this));
 			adapter.registerStreamPlaybackSecurity(new PlaybackSecurity(this));
+			adapter.registerSharedObjectSecurity(new SharedObjectSecurity(this));
 			adapter.addListener(this);
 		} else {
-			logger.error("hmph! Something is wrong. I dont have access to application adapter");
+			logger.error("Something is wrong, no access to application adapter");
 		}
-
-		logger.debug("adapter = {}", adapter);
-		logger.debug("context = {}", context);
-
-		logger.debug("auth host = {}", host);
-		logger.debug("auth port = {}", port);
-		logger.debug("auth protocol = {}", protocol);
-
-		logger.debug("authEndPoint = {}", validateEndPoint);
-		logger.debug("invalidateEndPoint = {}", invalidateEndPoint);
-		logger.debug("lazyAuth = {}", lazyAuth);
+		logger.debug("adapter = {}\ncontext = {}", adapter, context);
+		logger.debug("auth host = {}\nauth port = {}\nauth protocol = {}", host, port, protocol);
+		logger.debug("authEndPoint = {}\ninvalidateEndPoint = {}\nlazyAuth = {}", validateEndPoint, invalidateEndPoint,
+				lazyAuth);
 	}
 
 	@Override
@@ -373,6 +368,52 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	}
 
 	/**
+	 * Authenticates a shared object connection, via remote server
+	 *
+	 * @param conn
+	 *            The IConnection object representing the connection
+	 * @param scope
+	 *            The scope where client is attempting to use shared objects
+	 * @param name
+	 *            The name that the client is trying to use shared objects
+	 *
+	 * @return Boolean true if validation is successful, otherwise false
+	 */
+	public boolean onSharedObjectAuthenticate(IConnection conn, IScope scope, String name) {
+		String username = conn.getStringAttribute("username");
+		String password = conn.getStringAttribute("password");
+		String token = (conn.hasAttribute("token")) ? conn.getStringAttribute("token") : "";
+		String type = "publisher";
+		if (password != null && username != null) {
+			if (!this.lazyAuth) {
+				try {
+					JsonObject result = authenticateOverHttp(type, username, password, token, name);
+					boolean canStream = result.get("result").getAsBoolean();
+					if (canStream) {
+						conn.setAttribute("roletype", type);
+						// XXX may want to add SO name or use stream name and so name?
+						conn.setAttribute("streamID", name);
+						if (result.has("url")) {
+							String url = result.get("url").getAsString();
+							conn.setAttribute("signedURL", url);
+						} else {
+							logger.debug("No Signed URL supplied");
+						}
+					}
+					return canStream;
+				} catch (Exception e) {
+					logger.warn("Exception onSharedObject check", e);
+					return false;
+				}
+			} else {
+				threadPoolExecutor.submit(new LazyAuthentication(conn, type, username, password, token, name));
+				return true;
+			}
+		}
+		return true;
+	}
+
+	/**
 	 * Method to authentication/validate client via remote server over http/https
 	 *
 	 * @param type
@@ -383,12 +424,13 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 *            The `password` parameter provided by the client
 	 * @param token
 	 *            The `token` parameter provided by the client
-	 * @param stream
-	 *            The `stream name` for which validation is required
+	 * @param name
+	 *            The `stream name` or `object name` for which validation is
+	 *            required
 	 *
 	 * @return JsonObject JSON payload response from the remote server
 	 */
-	public JsonObject authenticateOverHttp(String type, String username, String password, String token, String stream) {
+	public JsonObject authenticateOverHttp(String type, String username, String password, String token, String name) {
 		JsonObject result = new JsonObject();
 		// default to failed
 		result.add("result", new JsonPrimitive(false));
@@ -399,7 +441,7 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 			data.setUsername(username);
 			data.setPassword(password);
 			data.setToken(token);
-			data.setStreamID(stream);
+			data.setStreamID(name);
 
 			String json = gson.toJson(data);
 
@@ -511,13 +553,13 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 		IConnection conn;
 
 		public LazyAuthentication(IConnection conn, String type, String username, String password, String token,
-				String stream) {
+				String name) {
 			this.conn = conn;
 			this.type = type;
 			this.username = username;
 			this.password = password;
 			this.token = token;
-			this.stream = stream;
+			this.stream = name;
 		}
 
 		@Override

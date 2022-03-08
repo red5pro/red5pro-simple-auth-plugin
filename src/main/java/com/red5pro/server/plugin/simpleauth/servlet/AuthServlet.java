@@ -2,7 +2,6 @@ package com.red5pro.server.plugin.simpleauth.servlet;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -17,7 +16,6 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import javax.servlet.http.HttpUtils;
 
 import org.apache.commons.lang3.StringUtils;
 import org.red5.server.adapter.StatefulScopeWrappingAdapter;
@@ -84,7 +82,6 @@ public class AuthServlet implements Filter {
 	public void destroy() {
 	}
 
-	@SuppressWarnings("deprecation")
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
@@ -131,30 +128,21 @@ public class AuthServlet implements Filter {
 		// arent working
 		if (StringUtils.isNotBlank(token) || (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)
 				&& !"undefined".equals(username) && !"undefined".equals(password))) {
-			// get the query string
-			String qs = httpRequest.getQueryString();
-			if (qs != null) {
-				log.info("Query string: {}", qs);
-				// strip '?' if its in the QS
-				if (qs.charAt(0) == '?') {
-					qs = qs.substring(1);
-				}
-				Hashtable<String, String[]> qsMap = HttpUtils.parseQueryString(qs);
-				log.debug("QS map: {}", qsMap);
-				for (Entry<String, String[]> entry : qsMap.entrySet()) {
-					String key = entry.getKey();
-					String[] val = entry.getValue();
-					if (IAuthenticationValidator.TOKEN.equals(key)) {
-						token = val[0];
-					} else if (IAuthenticationValidator.USERNAME.equals(key)) {
-						username = val[0];
-					} else if (IAuthenticationValidator.PASSWORD.equals(key)) {
-						password = val[0];
-					} else if ("type".equals(key)) {
-						type = val[0];
-					} else if ("streamName".equals(key)) {
-						streamName = val[0];
-					}
+			Map<String, String[]> qsMap = httpRequest.getParameterMap();
+			log.debug("QS map: {}", qsMap);
+			for (Entry<String, String[]> entry : qsMap.entrySet()) {
+				String key = entry.getKey();
+				String[] val = entry.getValue();
+				if (IAuthenticationValidator.TOKEN.equals(key)) {
+					token = val[0];
+				} else if (IAuthenticationValidator.USERNAME.equals(key)) {
+					username = val[0];
+				} else if (IAuthenticationValidator.PASSWORD.equals(key)) {
+					password = val[0];
+				} else if ("type".equals(key)) {
+					type = val[0];
+				} else if ("streamName".equals(key)) {
+					streamName = val[0];
 				}
 			}
 		}
