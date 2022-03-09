@@ -38,9 +38,14 @@ import org.slf4j.LoggerFactory;
 import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.RoundTripAuthValidator;
 
 /**
- * This class implements the <tt>IStreamPublishSecurity</tt> interface to
- * intercept stream publish action. The implementation captures necessary
- * publish params and passes them to remote server via the
+ * This class implements the
+ * 
+ * <pre>
+ * IStreamPublishSecurity
+ * </pre>
+ * 
+ * interface to intercept stream publish action. The implementation captures
+ * necessary publish params and passes them to remote server via the
  * `RoundTripAuthValidator` class for authentication.
  * 
  * Publisher request is accepted or rejected based on remote server validation
@@ -53,7 +58,10 @@ public class PublishSecurity implements IStreamPublishSecurity {
 
 	private static Logger logger = LoggerFactory.getLogger(PublishSecurity.class);
 
-	private RoundTripAuthValidator roundTripAuthValidator;
+	private final RoundTripAuthValidator roundTripAuthValidator;
+
+	// default response for allowed or not
+	private boolean defaultResponse = true;
 
 	public PublishSecurity(RoundTripAuthValidator roundTripAuthValidator) {
 		this.roundTripAuthValidator = roundTripAuthValidator;
@@ -61,16 +69,27 @@ public class PublishSecurity implements IStreamPublishSecurity {
 
 	@Override
 	public boolean isPublishAllowed(IScope scope, String name, String mode) {
+		// an npe is possible farther down, if the connection isn't available here
 		IConnection connection = Red5.getConnectionLocal();
-
-		Map<String, Object> attrs = connection.getAttributes();
-		Iterator<Map.Entry<String, Object>> it = attrs.entrySet().iterator();
-		while (it.hasNext()) {
-			Map.Entry<String, Object> pair = it.next();
-			logger.debug("key : {} value : {}", pair.getKey(), pair.getValue());
+		if (connection != null) {
+			// attrs inspection is only for debug level logging here, so we'll use a guard
+			// for optimization
+			if (logger.isDebugEnabled()) {
+				Map<String, Object> attrs = connection.getAttributes();
+				Iterator<Map.Entry<String, Object>> it = attrs.entrySet().iterator();
+				while (it.hasNext()) {
+					Map.Entry<String, Object> pair = it.next();
+					logger.debug("key : {} value : {}", pair.getKey(), pair.getValue());
+				}
+			}
+			return roundTripAuthValidator.onPublishAuthenticate(connection, scope, name);
 		}
+		// default publish result if a connection isn't present
+		return defaultResponse;
+	}
 
-		return roundTripAuthValidator.onPublishAuthenticate(connection, scope, name);
+	public void setDefaultResponse(boolean defaultResponse) {
+		this.defaultResponse = defaultResponse;
 	}
 
 }

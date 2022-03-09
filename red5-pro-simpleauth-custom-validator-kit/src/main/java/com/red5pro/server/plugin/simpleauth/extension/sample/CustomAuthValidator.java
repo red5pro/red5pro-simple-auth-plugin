@@ -36,68 +36,80 @@ import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
 
 public class CustomAuthValidator implements IAuthenticationValidator {
 
-    private static Logger logger = LoggerFactory.getLogger(CustomAuthValidator.class);
+	private static Logger logger = LoggerFactory.getLogger(CustomAuthValidator.class);
 
-    private IContext context;
+	private IContext context;
 
-    private MultiThreadedApplicationAdapter adapter;
+	private MultiThreadedApplicationAdapter adapter;
 
-    @Override
-    public void initialize() {
+	@Override
+	public void initialize() {
+		logger.info("CustomAuthValidator initializing...");
+		if (adapter != null) {
+			// Enable the line below to activate publish interceptor
+			// adapter.registerStreamPublishSecurity(new PublishSecurity(this));
 
-        logger.info("CustomAuthValidator initializing...");
+			// Enable the line below to activate playback interceptor
+			// adapter.registerStreamPlaybackSecurity(new PlaybackSecurity(this));
+		} else {
+			logger.error("Something is wrong. i dont have access to application adapter");
+		}
+		logger.debug("adapter = {}", adapter);
+		logger.debug("context = {}", context);
+	}
 
-        if (adapter != null) {
-            // Enable the line below to activate publish interceptor
-            //adapter.registerStreamPublishSecurity(new PublishSecurity(this));
+	/**
+	 * Return true or false to determine whether client can connect or not. Note :
+	 * if you want to extract custom params its a good thing to check connection
+	 * type first. If you want to do publish and playback validation, then make sure
+	 * to return true in this method unconditionally.
+	 */
+	@Override
+	public boolean onConnectAuthenticate(String username, String password, Object[] rest) {
+		logger.info("Client attempting to connect...");
+		IConnection conn = Red5.getConnectionLocal();
+		// get the connection type
+		String type = ConnectionUtils.getConnectionType(conn);
+		switch (type) {
+			case "rtmp":
+				// do something special
+				break;
+			case "rtsp":
+				// do something special
+				break;
+			case "rtc":
+				// do something special
+				break;
+			case "srt":
+				// do something special
+				break;
+			case "mpegts":
+				// do something special
+				break;
+			case "http":
+				// do something special
+				break;
+			default:
+				logger.warn("Unhandled connection type: {}", conn.getClass().getName());
+				return false;
+		}
+		return true;
+	}
 
-            // Enable the line below to activate playback interceptor
-            //adapter.registerStreamPlaybackSecurity(new PlaybackSecurity(this));
-        } else {
-            logger.error("Something is wrong. i dont have access to application adapter");
-        }
+	public MultiThreadedApplicationAdapter getAdapter() {
+		return adapter;
+	}
 
-        logger.debug("adapter = {}", adapter);
-        logger.debug("context = {}", context);
-    }
+	public void setAdapter(MultiThreadedApplicationAdapter adapter) {
+		this.adapter = adapter;
+	}
 
-    /**
-     * Return true or false to determine whether client can connect or not.
-     * Note : if you want to extract custom params its a good thing to check connection type first.
-     * If you want to do publish and playback validation, then make sure to return true in this method unconditionally. 
-     */
-    @Override
-    public boolean onConnectAuthenticate(String arg0, String arg1, Object[] arg2) {
+	public IContext getContext() {
+		return context;
+	}
 
-        logger.info("Client attempting to connect...");
-
-        IConnection conn = Red5.getConnectionLocal();
-
-        if (ConnectionUtils.isRTC(conn)) {
-            // do something special
-        } else if (ConnectionUtils.isRTMP(conn)) {
-            // do something special
-        } else if (ConnectionUtils.isRTSP(conn)) {
-            // do something special
-        }
-
-        return true;
-    }
-
-    public MultiThreadedApplicationAdapter getAdapter() {
-        return adapter;
-    }
-
-    public void setAdapter(MultiThreadedApplicationAdapter adapter) {
-        this.adapter = adapter;
-    }
-
-    public IContext getContext() {
-        return context;
-    }
-
-    public void setContext(IContext context) {
-        this.context = context;
-    }
+	public void setContext(IContext context) {
+		this.context = context;
+	}
 
 }

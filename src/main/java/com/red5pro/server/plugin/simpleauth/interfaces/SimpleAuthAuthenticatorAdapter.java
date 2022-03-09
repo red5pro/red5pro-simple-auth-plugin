@@ -23,57 +23,76 @@
 // WHETHER IN  AN  ACTION  OF  CONTRACT,  TORT  OR  OTHERWISE,  ARISING  FROM,  OUT  OF  OR  IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-package com.red5pro.server.plugin.simpleauth.impl;
-
-import java.util.HashMap;
-import java.util.Map;
+package com.red5pro.server.plugin.simpleauth.interfaces;
 
 import org.red5.server.api.IConnection;
-import org.red5.server.api.Red5;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.red5pro.server.plugin.simpleauth.interfaces.SimpleAuthAuthenticatorAdapter;
+import com.red5pro.server.plugin.simpleauth.AuthenticatorType;
 
 /**
- * This class is a authenticator implementation of
+ * Abstract adapter class for ISimpleAuthAuthenticator.
  * 
- * <pre>
- * ISimpleAuthAuthenticator
- * </pre>
- * 
- * , which is used to handle authentication for RTSP clients.
- * 
- * @author Rajdeep Rath
+ * @author Paul Gregoire
  *
  */
-public class RTSPAuthenticator extends SimpleAuthAuthenticatorAdapter {
+public abstract class SimpleAuthAuthenticatorAdapter implements ISimpleAuthAuthenticator {
 
+	protected Logger logger = LoggerFactory.getLogger(this.getClass());
+
+	/**
+	 * The IAuthenticationValidator object for this authenticator
+	 */
+	protected IAuthenticationValidator source;
+
+	/**
+	 * Flag to enable/disable connection params check on query params
+	 */
+	protected boolean allowQueryParams;
+
+	/**
+	 * Authenticator entry point
+	 */
+	public void initialize() {
+		// initialization tasks
+		logger.debug("{} initialized", this.getClass().getName());
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public void setDataSource(IAuthenticationValidator source) {
+		this.source = source;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public IAuthenticationValidator getDataSource() {
+		return source;
+	}
+
+	/** {@inheritDoc} */
 	@Override
 	public boolean authenticate(IConnection connection, Object[] params) {
-		logger.debug("authenticate:\n{}\nparams: {}", connection, params);
-		// set connection local or std rtmp processes wont find the connection where
-		// they expect it
-		Red5.setConnectionLocal(connection);
-		try {
-			if (params.length == 0 || params[0] == null) {
-				throw new Exception("Missing connection parameter(s)");
-			}
-			Map<String, Object> map = new HashMap<String, Object>();
-			for (int i = 0; i < params.length; i++) {
-				String[] param = String.valueOf(params[i]).split("=");
-				map.put(param[0], param[1]);
-			}
-			if (!map.containsKey("username") || !map.containsKey("password")) {
-				throw new Exception("Missing authentication parameter(s)");
-			}
-			String username = String.valueOf(map.get("username"));
-			String password = String.valueOf(map.get("password"));
-			Object[] rest = new Object[1];
-			rest[0] = map;
-			return source.onConnectAuthenticate(username, password, rest);
-		} catch (Exception e) {
-			logger.error("Error authenticating connection {}", e.getMessage());
-		}
 		return false;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean authenticate(AuthenticatorType type, Object connection, Object[] params) {
+		return false;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public void setAllowQueryParams(boolean allowQueryParams) {
+		this.allowQueryParams = allowQueryParams;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean isAllowQueryParams() {
+		return allowQueryParams;
 	}
 
 }
