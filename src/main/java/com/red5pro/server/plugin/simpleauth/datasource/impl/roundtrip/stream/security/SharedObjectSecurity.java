@@ -82,7 +82,7 @@ public class SharedObjectSecurity extends SecurityAdapter implements ISharedObje
 			logConnectionParameters(connection);
 			// XXX may have to switch from the actual so being the "scope" to the parent, if
 			// theres an issue
-			return roundTripAuthValidator.onSharedObjectAuthenticate(connection, (IScope) so, so.getName());
+			return roundTripAuthValidator.onSharedObjectAuthenticate(connection, so.getParent(), so.getName());
 		}
 		// default result if a connection isn't present
 		return defaultResponse;
