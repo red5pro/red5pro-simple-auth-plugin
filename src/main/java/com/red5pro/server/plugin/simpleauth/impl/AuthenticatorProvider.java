@@ -33,6 +33,7 @@ import com.red5pro.server.plugin.simpleauth.AuthenticatorType;
 import com.red5pro.server.plugin.simpleauth.Configuration;
 import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
 import com.red5pro.server.plugin.simpleauth.interfaces.ISimpleAuthAuthenticator;
+import com.red5pro.server.so.ISharedObjectCapableConnection;
 import com.red5pro.server.stream.mpegts.IMPEGTSConnection;
 import com.red5pro.server.stream.restreamer.IConnectorShell;
 import com.red5pro.server.stream.rtsp.IRTSPConnection;
@@ -282,6 +283,13 @@ public class AuthenticatorProvider {
 				} else {
 					return happyAuthenticator;
 				}
+			} else if (connection instanceof ISharedObjectCapableConnection) {
+				// XXX on the subject of SO support, we'll allow intra-node
+				// comms via ISharedObjectCapableConnection type, but this
+				// interface is not yet in commons, but auth links mega, so its
+				// ok for now. Also returning "happy" since SO checks are not
+				// enforced at the transport protocol level.
+				return happyAuthenticator;
 			} else {
 				// unknown protocol
 				logger.error("Unknown connection type {}", connection.getClass().getCanonicalName());
