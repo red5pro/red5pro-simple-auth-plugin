@@ -26,24 +26,36 @@
 package com.red5pro.server.plugin.simpleauth.impl;
 
 import org.red5.server.api.IConnection;
-import org.red5.server.net.rtmp.RTMPMinaConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.red5pro.server.plugin.simpleauth.AuthenticatorType;
 import com.red5pro.server.plugin.simpleauth.Configuration;
 import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
 import com.red5pro.server.plugin.simpleauth.interfaces.ISimpleAuthAuthenticator;
-
-import org.red5.server.net.rtmpt.RTMPTConnection;
-import com.red5pro.server.stream.rtsp.IRTSPConnection;
+import com.red5pro.server.so.ISharedObjectCapableConnection;
+import com.red5pro.server.stream.mpegts.IMPEGTSConnection;
 import com.red5pro.server.stream.restreamer.IConnectorShell;
+import com.red5pro.server.stream.rtsp.IRTSPConnection;
+import com.red5pro.server.stream.srt.ISRTConnection;
 import com.red5pro.server.stream.webrtc.IWebRTCConnection;
 
 /**
- * This class is the <tt>ISimpleAuthAuthenticator</tt> provider for the
- * authentication mechanism. It selects and executes the correct
- * <tt>ISimpleAuthAuthenticator</tt> implementation for a incoming IConnection
- * object based on connection type and configuration settings.
+ * This class is the
+ * 
+ * <pre>
+ * ISimpleAuthAuthenticator
+ * </pre>
+ * 
+ * provider for the authentication mechanism. It selects and executes the
+ * correct
+ * 
+ * <pre>
+ * ISimpleAuthAuthenticator
+ * </pre>
+ * 
+ * implementation for a incoming IConnection object based on connection type and
+ * configuration settings.
  * 
  * @author Rajdeep Rath
  *
@@ -89,6 +101,26 @@ public class AuthenticatorProvider {
 	ISimpleAuthAuthenticator happyAuthenticator;
 
 	/**
+	 * Authenticator implementation reference for SRT
+	 */
+	ISimpleAuthAuthenticator srtAuthenticator;
+
+	/**
+	 * Authenticator implementation reference for mpegts
+	 */
+	ISimpleAuthAuthenticator mpegtsAuthenticator;
+
+	/**
+	 * Authenticator implementation reference for http
+	 */
+	ISimpleAuthAuthenticator httpAuthenticator;
+
+	/**
+	 * Authenticator implementation reference for websocket
+	 */
+	ISimpleAuthAuthenticator wsAuthenticator;
+
+	/**
 	 * Global settings for enabling or disabling rtmp authentication
 	 */
 	private boolean secureRTMP = true;
@@ -102,6 +134,26 @@ public class AuthenticatorProvider {
 	 * Global settings for enabling or disabling rtc authentication
 	 */
 	private boolean secureRTC = true;
+
+	/**
+	 * Global settings for enabling or disabling srt authentication
+	 */
+	private boolean secureSRT = true;
+
+	/**
+	 * Global settings for enabling or disabling mpegts authentication
+	 */
+	private boolean secureMPEGTS = true;
+
+	/**
+	 * Global settings for enabling or disabling http authentication
+	 */
+	private boolean secureHTTP = true;
+
+	/**
+	 * Global settings for enabling or disabling websocket authentication
+	 */
+	private boolean secureWS = true;
 
 	/**
 	 * Global settings for allowing or disallowing query params checking rtmp
@@ -133,6 +185,10 @@ public class AuthenticatorProvider {
 		this.setSecureRTMP(config.isRtmp());
 		this.setSecureRTSP(config.isRtsp());
 		this.setSecureRTC(config.isRtc());
+		this.setSecureSRT(config.isSrt());
+		this.setSecureMPEGTS(config.isMpegts());
+		this.setSecureHTTP(config.isHttp());
+		this.setSecureWS(config.isWs());
 		this.setRtmpAcceptsQueryParamsEnabled(config.isRtmpAllowQueryParamsEnabled());
 		this.setAllowedRtmpAgents(config.getAllowedRtmpAgents());
 	}
@@ -141,21 +197,33 @@ public class AuthenticatorProvider {
 	 * Entry point
 	 */
 	public void initialize() {
-
+		// rtmp
 		rtmpAuthenticator = new RTMPAuthenticator(rtmpAcceptsQueryParamsEnabled, allowedRtmpAgents);
 		rtmpAuthenticator.setDataSource(validator);
-
+		// rtsp
 		rtspAuthenticator = new RTSPAuthenticator();
 		rtspAuthenticator.setDataSource(validator);
-
+		// webrtc
 		webRtcAuthenticator = new RTCAuthenticator();
 		webRtcAuthenticator.setDataSource(validator);
-
+		// blocking
 		grumpyAuthenticator = new BlockerAuthenticator();
 		grumpyAuthenticator.setDataSource(validator);
-
+		// pass-thru
 		happyAuthenticator = new PassThruAuthenticator();
 		happyAuthenticator.setDataSource(validator);
+		// srt
+		srtAuthenticator = new SRTAuthenticator();
+		srtAuthenticator.setDataSource(validator);
+		// mpeg-ts
+		mpegtsAuthenticator = new MpegTsAuthenticator();
+		mpegtsAuthenticator.setDataSource(validator);
+		// http
+		httpAuthenticator = new HTTPAuthenticator();
+		httpAuthenticator.setDataSource(validator);
+		// ws
+		wsAuthenticator = new WebSocketAuthenticator();
+		wsAuthenticator.setDataSource(validator);
 	}
 
 	/**
@@ -181,13 +249,8 @@ public class AuthenticatorProvider {
 		if (!enabled) {
 			return happyAuthenticator;
 		} else {
-			if (connection instanceof RTMPMinaConnection || connection instanceof RTMPTConnection) {
-				if (secureRTMP) {
-					return rtmpAuthenticator;
-				} else {
-					return happyAuthenticator;
-				}
-			} else if (connection instanceof IRTSPConnection) {
+			logger.info("getAuthenticator for {}", connection);
+			if (connection instanceof IRTSPConnection) {
 				if (secureRTSP) {
 					return rtspAuthenticator;
 				} else {
@@ -199,13 +262,93 @@ public class AuthenticatorProvider {
 				} else {
 					return happyAuthenticator;
 				}
+			} else if (connection instanceof IMPEGTSConnection) {
+				if (secureMPEGTS) {
+					return mpegtsAuthenticator;
+				} else {
+					return happyAuthenticator;
+				}
+			} else if (connection instanceof ISRTConnection) {
+				if (secureSRT) {
+					return srtAuthenticator;
+				} else {
+					return happyAuthenticator;
+				}
 			} else if (connection instanceof IConnectorShell) {
+				return happyAuthenticator;
+			} else if (connection.getClass().getName().contains("RTMP")) {
+				logger.info("RTMP based connection detected");
+				if (secureRTMP) {
+					return rtmpAuthenticator;
+				} else {
+					return happyAuthenticator;
+				}
+			} else if (connection instanceof ISharedObjectCapableConnection) {
+				// XXX on the subject of SO support, we'll allow intra-node
+				// comms via ISharedObjectCapableConnection type, but this
+				// interface is not yet in commons, but auth links mega, so its
+				// ok for now. Also returning "happy" since SO checks are not
+				// enforced at the transport protocol level.
 				return happyAuthenticator;
 			} else {
 				// unknown protocol
-				logger.error("Unknown connection type " + connection.getClass().getCanonicalName());
+				logger.error("Unknown connection type {}", connection.getClass().getCanonicalName());
 				return grumpyAuthenticator;
 			}
+		}
+	}
+
+	/**
+	 * Returns appropriate ISimpleAuthAuthenticator implementation based on
+	 * AuthenticatorType.
+	 * 
+	 * @param type
+	 *            AuthenticatorType
+	 * @return An ISimpleAuthAuthenticator which will be used to authenticate
+	 */
+	public ISimpleAuthAuthenticator getAuthenticator(AuthenticatorType type) {
+		switch (type) {
+			case RTMP :
+				if (secureRTMP) {
+					return rtmpAuthenticator;
+				}
+				return happyAuthenticator;
+			case RTSP :
+				if (secureRTSP) {
+					return rtspAuthenticator;
+				}
+				return happyAuthenticator;
+			case RTC :
+				if (secureRTC) {
+					return webRtcAuthenticator;
+				}
+				return happyAuthenticator;
+			case MPEGTS :
+				if (secureMPEGTS) {
+					return mpegtsAuthenticator;
+				}
+				return happyAuthenticator;
+			case SRT :
+				if (secureSRT) {
+					return srtAuthenticator;
+				}
+				return happyAuthenticator;
+			case HTTP :
+				if (secureHTTP) {
+					return httpAuthenticator;
+				}
+				return happyAuthenticator;
+			case WS :
+				if (secureWS) {
+					return wsAuthenticator;
+				}
+				return happyAuthenticator;
+			case HAPPY :
+				return happyAuthenticator;
+			default :
+				logger.error("Unknown type {}", type);
+			case GRUMPY :
+				return grumpyAuthenticator;
 		}
 	}
 
@@ -276,13 +419,89 @@ public class AuthenticatorProvider {
 	}
 
 	/**
-	 * Sets the global default state for rtsp authentication
+	 * Sets the global default state for rtc authentication
 	 * 
 	 * @param secureRTC
 	 *            Boolean value to rtc
 	 */
 	public void setSecureRTC(boolean secureRTC) {
 		this.secureRTC = secureRTC;
+	}
+
+	/**
+	 * Returns the global default state for srt authentication
+	 * 
+	 * @return true if srt authentication is enabled, otherwise false
+	 */
+	public boolean isSecureSRT() {
+		return secureSRT;
+	}
+
+	/**
+	 * Sets the global default state for srt authentication
+	 * 
+	 * @param secureSRT
+	 *            Boolean value to srt
+	 */
+	public void setSecureSRT(boolean secureSRT) {
+		this.secureSRT = secureSRT;
+	}
+
+	/**
+	 * Returns the global default state for mpegts authentication
+	 * 
+	 * @return true if mpegts authentication is enabled, otherwise false
+	 */
+	public boolean isSecureMPEGTS() {
+		return secureMPEGTS;
+	}
+
+	/**
+	 * Sets the global default state for mpegts authentication
+	 * 
+	 * @param secureMPEGTS
+	 *            Boolean value to mpegts
+	 */
+	public void setSecureMPEGTS(boolean secureMPEGTS) {
+		this.secureMPEGTS = secureMPEGTS;
+	}
+
+	/**
+	 * Returns the global default state for http authentication
+	 * 
+	 * @return true if http authentication is enabled, otherwise false
+	 */
+	public boolean isSecureHTTP() {
+		return secureHTTP;
+	}
+
+	/**
+	 * Sets the global default state for http authentication
+	 * 
+	 * @param secureHTTP
+	 *            Boolean value to http
+	 */
+	public void setSecureHTTP(boolean secureHTTP) {
+		this.secureHTTP = secureHTTP;
+	}
+
+	/**
+	 * Returns the global default state for ws authentication
+	 * 
+	 * @return true if ws authentication is enabled, otherwise false
+	 */
+	public boolean isSecureWS() {
+		return secureWS;
+	}
+
+	/**
+	 * Sets the global default state for ws authentication
+	 * 
+	 * @param secureWS
+	 *            Boolean value to ws
+	 */
+	public void setSecureWS(boolean secureWS) {
+		this.secureWS = secureWS;
 	}
 
 	/**
@@ -326,7 +545,7 @@ public class AuthenticatorProvider {
 	/**
 	 * Returns the global value for allowed rtmp agents
 	 * 
-	 * @return comma separated string of rtmp agents or <tt>*</tt> for all
+	 * @return comma separated string of rtmp agents or * for all
 	 */
 	public String getAllowedRtmpAgents() {
 		return allowedRtmpAgents;
@@ -336,9 +555,10 @@ public class AuthenticatorProvider {
 	 * Sets the global value for allowed rtmp agents
 	 * 
 	 * @param allowedRtmpAgents
-	 *            A comma separated string of rtmp agents or <tt>*</tt> for all
+	 *            A comma separated string of rtmp agents or * for all
 	 */
 	public void setAllowedRtmpAgents(String allowedRtmpAgents) {
 		this.allowedRtmpAgents = allowedRtmpAgents;
 	}
+
 }

@@ -38,8 +38,13 @@ import com.red5pro.server.plugin.simpleauth.interfaces.ISimpleAuthAuthenticator;
 
 /**
  * This class works as a application level hook by implementing the
- * <tt>IApplication</tt>interface.This class is used to intercept a client
- * connection to the application. For details on application hooks see <a href=
+ * 
+ * <pre>
+ * IApplication
+ * </pre>
+ * 
+ * interface.This class is used to intercept a client connection to the
+ * application. For details on application hooks see <a href=
  * "http://red5.org/javadoc/red5-server-common/org/red5/server/adapter/IApplication.html">IApplication</a>
  * 
  * @author Rajdeep Rath
@@ -87,32 +92,27 @@ public class AppEventMonitor implements IApplication {
 
 	@Override
 	public boolean appStart(IScope app) {
-		if (scope == null)
+		if (scope == null) {
 			this.scope = app;
-
+		}
 		return true;
 	}
 
 	@Override
 	public boolean appConnect(IConnection conn, Object[] params) {
 		log.debug("appConnect");
-
 		boolean authenticated;
-
 		try {
 			ISimpleAuthAuthenticator authenticator = provider.getAuthenticator(conn);
 			authenticated = authenticator.authenticate(conn, params);
-
 			if (!authenticated) {
 				log.warn("Rejecting client connection due to failed authentication");
 				throw new ClientRejectedException("Access denied due to authentication failure");
 			}
-
 			return true;
 		} catch (Exception e) {
 			String msg = "Access denied due to unknown error in authentication routine";
-			log.warn("msg");
-
+			log.warn("{}", msg, e);
 			throw new ClientRejectedException(msg);
 		}
 	}
@@ -150,7 +150,6 @@ public class AppEventMonitor implements IApplication {
 	@Override
 	public boolean roomJoin(IClient client, IScope room) {
 		log.debug("roomJoin");
-
 		return true;
 	}
 

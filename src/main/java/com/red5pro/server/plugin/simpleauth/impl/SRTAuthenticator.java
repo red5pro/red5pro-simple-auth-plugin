@@ -38,24 +38,19 @@ import org.red5.server.api.Red5;
 import com.red5pro.server.plugin.simpleauth.interfaces.SimpleAuthAuthenticatorAdapter;
 
 /**
- * This class is a authenticator implementation of
+ * This class is a authenticator implementation for SRT and is based on
  * 
  * <pre>
- * ISimpleAuthAuthenticator
+ * RTCAuthAuthenticator
  * </pre>
  * 
  * , which is used to handle authentication for WebRTC clients.
  * 
  * @author Rajdeep Rath
+ * @author Paul Gregoire
  *
  */
-public class RTCAuthenticator extends SimpleAuthAuthenticatorAdapter {
-
-	@Override
-	public void initialize() {
-		// initialization tasks
-		logger.debug("RTCAuthenticator initialized");
-	}
+public class SRTAuthenticator extends SimpleAuthAuthenticatorAdapter {
 
 	@Override
 	public boolean authenticate(IConnection connection, Object[] params) {
