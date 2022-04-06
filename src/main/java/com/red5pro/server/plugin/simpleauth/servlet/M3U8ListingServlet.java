@@ -152,13 +152,6 @@ public class M3U8ListingServlet extends HttpServlet {
 			// determine if cloud should be accessed by checking the class name for the
 			// generator
 			String generatorName = filenameGenerator.getClass().getName();
-			// use the string to prevent dependency on the cloudstorage plugin
-			if ("com.red5pro.media.storage.s3.S3FilenameGenerator".equals(generatorName)
-					|| "com.red5pro.media.storage.gstorage.GStorageFilenameGenerator".equals(generatorName)
-					|| "com.red5pro.media.storage.digitalocean.DOFilenameGenerator".equals(generatorName)) {
-				log.debug("Cloud enabled");
-				useCloud = true;
-			}
 			// get the request uri
 			String requestedURI = req.getRequestURI();
 			String pathInfo = req.getPathInfo();
@@ -254,71 +247,86 @@ public class M3U8ListingServlet extends HttpServlet {
 			ServletOutputStream out = resp.getOutputStream();
 			// output first part of the json
 			out.write(JSON_START);
+			// check if cloud or local recordings are requested
+			String takeFromCloud = req.getParameter("useCloud");
+			useCloud = takeFromCloud != null && takeFromCloud.equals("true");
+			// use the string to prevent dependency on the cloudstorage plugin
+			if (useCloud && !"com.red5pro.media.storage.s3.S3FilenameGenerator".equals(generatorName)
+					&& !"com.red5pro.media.storage.gstorage.GStorageFilenameGenerator".equals(generatorName)
+					&& !"com.red5pro.media.storage.digitalocean.DOFilenameGenerator".equals(generatorName)
+					&& !"com.red5pro.media.storage.azure.AzureFilenameGenerator".equals(generatorName)) {
+				log.debug("Cloud plugin not enabled");
+				out.write(JSON_END);
+				return;
+			}
+			log.debug("Returning recordings from {}", useCloud ? "cloud storage" : "local storage");
 			// keep track of the entries written so we can comma separate the logical entry
 			// sets
 			int writeCount = 0;
-			// if theres path info, append it to the streams dir for the search
-			if (!filenameGenerator.resolvesToAbsolutePath()) {
-				log.debug("Using relative path");
-				// get all the resources under streams and its possible subdirs
-				try {
-					IContext context = appScope.getContext();
-					if (log.isTraceEnabled()) {
-						log.trace("Application context resources: {}", Arrays.toString(context.getResources("*")));
-					}
-					String searchPattern = String.format("streams%s/*.m3u8", ("/".equals(pathInfo) ? "/**" : pathInfo));
-					log.debug("Search pattern: {}", searchPattern);
-					Resource[] resources = context.getResources(searchPattern);
-					log.debug("Local Resources {}", Arrays.toString(resources));
-					for (int i = 0; i < resources.length; i++) {
-						Resource res = resources[i];
-						String uri = res.getURI().toString();
-						String url = uri.substring(uri.lastIndexOf("streams/") + 8);
-						out.write(String.format(JSON_ENTRY_TEMPLATE, res.getFilename(), res.lastModified(),
-								res.contentLength(), url).getBytes());
-						// comma or not to comma that is the question
-						if (i < (resources.length - 1)) {
-							out.write(COMMA);
+			if (!useCloud) {
+				// if theres path info, append it to the streams dir for the search
+				if (!filenameGenerator.resolvesToAbsolutePath()) {
+					log.debug("Using relative path");
+					// get all the resources under streams and its possible subdirs
+					try {
+						IContext context = appScope.getContext();
+						if (log.isTraceEnabled()) {
+							log.trace("Application context resources: {}", Arrays.toString(context.getResources("*")));
 						}
-						if (i % 10 == 0) {
-							out.flush();
+						String searchPattern = String.format("streams%s/*.m3u8",
+								("/".equals(pathInfo) ? "/**" : pathInfo));
+						log.debug("Search pattern: {}", searchPattern);
+						Resource[] resources = context.getResources(searchPattern);
+						log.debug("Local Resources {}", Arrays.toString(resources));
+						for (int i = 0; i < resources.length; i++) {
+							Resource res = resources[i];
+							String uri = res.getURI().toString();
+							String url = uri.substring(uri.lastIndexOf("streams/") + 8);
+							out.write(String.format(JSON_ENTRY_TEMPLATE, res.getFilename(), res.lastModified(),
+									res.contentLength(), url).getBytes());
+							// comma or not to comma that is the question
+							if (i < (resources.length - 1)) {
+								out.write(COMMA);
+							}
+							if (i % 10 == 0) {
+								out.flush();
+							}
 						}
+						// set the write count
+						writeCount = resources.length;
+					} catch (IOException e) {
+						log.warn("Exception building list of files", e);
 					}
-					// set the write count
-					writeCount = resources.length;
-				} catch (IOException e) {
-					log.warn("Exception building list of files", e);
+				} else {
+					log.debug("Using absolute path");
+					try {
+						IContext context = appScope.getContext();
+						String searchPattern = String.format("file:%s%s/*.m3u8", streamsBaseDirectory,
+								("/".equals(pathInfo) ? "/**" : pathInfo));
+						log.debug("Search pattern: {}", searchPattern);
+						Resource[] resources = context.getResources(searchPattern);
+						log.debug("Local Resources {}", Arrays.toString(resources));
+						for (int i = 0; i < resources.length; i++) {
+							Resource res = resources[i];
+							String uri = res.getURI().toString();
+							String url = uri.substring(uri.lastIndexOf("streams/"));
+							out.write(String.format(JSON_ENTRY_TEMPLATE, res.getFilename(), res.lastModified(),
+									res.contentLength(), url).getBytes());
+							// comma or not to comma that is the question
+							if (i < (resources.length - 1)) {
+								out.write(COMMA);
+							}
+							if (i % 10 == 0) {
+								out.flush();
+							}
+						}
+						// set the write count
+						writeCount = resources.length;
+					} catch (IOException e) {
+						log.warn("Exception building list of files", e);
+					}
 				}
 			} else {
-				log.debug("Using absolute path");
-				try {
-					IContext context = appScope.getContext();
-					String searchPattern = String.format("file:%s%s/*.m3u8", streamsBaseDirectory,
-							("/".equals(pathInfo) ? "/**" : pathInfo));
-					log.debug("Search pattern: {}", searchPattern);
-					Resource[] resources = context.getResources(searchPattern);
-					log.debug("Local Resources {}", Arrays.toString(resources));
-					for (int i = 0; i < resources.length; i++) {
-						Resource res = resources[i];
-						String uri = res.getURI().toString();
-						String url = uri.substring(uri.lastIndexOf("streams/"));
-						out.write(String.format(JSON_ENTRY_TEMPLATE, res.getFilename(), res.lastModified(),
-								res.contentLength(), url).getBytes());
-						// comma or not to comma that is the question
-						if (i < (resources.length - 1)) {
-							out.write(COMMA);
-						}
-						if (i % 10 == 0) {
-							out.flush();
-						}
-					}
-					// set the write count
-					writeCount = resources.length;
-				} catch (IOException e) {
-					log.warn("Exception building list of files", e);
-				}
-			}
-			if (useCloud) {
 				// s3
 				if (serviceS3 != null) {
 					// null pathInfo == / (root) in most cases, but for s3 bucket root expects ""
