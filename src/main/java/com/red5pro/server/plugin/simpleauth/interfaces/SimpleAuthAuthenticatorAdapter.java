@@ -23,54 +23,76 @@
 // WHETHER IN  AN  ACTION  OF  CONTRACT,  TORT  OR  OTHERWISE,  ARISING  FROM,  OUT  OF  OR  IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-package com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.stream.security;
+package com.red5pro.server.plugin.simpleauth.interfaces;
 
 import org.red5.server.api.IConnection;
-import org.red5.server.api.Red5;
-import org.red5.server.api.scope.IScope;
-import org.red5.server.api.stream.IStreamPlaybackSecurity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.RoundTripAuthValidator;
+import com.red5pro.server.plugin.simpleauth.AuthenticatorType;
 
 /**
- * This class implements the
+ * Abstract adapter class for ISimpleAuthAuthenticator.
  * 
- * <pre>
- * IStreamPlaybackSecurity
- * </pre>
- * 
- * interface to intercept stream subscribe action. The implementation captures
- * necessary playback request params and passes them to remote server via the
- * `RoundTripAuthValidator` class for authentication.
- * 
- * Subscriber request is accepted or rejected based on remote server validation
- * response.
- * 
- * @author Rajdeep Rath
+ * @author Paul Gregoire
  *
  */
-public class PlaybackSecurity extends SecurityAdapter implements IStreamPlaybackSecurity {
+public abstract class SimpleAuthAuthenticatorAdapter implements ISimpleAuthAuthenticator {
 
-	public PlaybackSecurity(RoundTripAuthValidator roundTripAuthValidator) {
-		super(roundTripAuthValidator);
+	protected Logger logger = LoggerFactory.getLogger(this.getClass());
+
+	/**
+	 * The IAuthenticationValidator object for this authenticator
+	 */
+	protected IAuthenticationValidator source;
+
+	/**
+	 * Flag to enable/disable connection params check on query params
+	 */
+	protected boolean allowQueryParams;
+
+	/**
+	 * Authenticator entry point
+	 */
+	public void initialize() {
+		// initialization tasks
+		logger.debug("{} initialized", this.getClass().getName());
 	}
 
+	/** {@inheritDoc} */
 	@Override
-	public boolean isPlaybackAllowed(IScope scope, String name, int start, int length, boolean flushPlaylist) {
-		// an npe is possible farther down, if the connection isn't available here
-		IConnection connection = Red5.getConnectionLocal();
-		if (connection != null) {
-			// attrs inspection is only for debug level logging, using a guard for
-			// optimization
-			logConnectionParameters(connection);
-			return roundTripAuthValidator.onPlaybackAuthenticate(connection, scope, name);
-		}
-		// default playback result if a connection isn't present
-		return defaultResponse;
+	public void setDataSource(IAuthenticationValidator source) {
+		this.source = source;
 	}
 
-	public void setDefaultResponse(boolean defaultResponse) {
-		this.defaultResponse = defaultResponse;
+	/** {@inheritDoc} */
+	@Override
+	public IAuthenticationValidator getDataSource() {
+		return source;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean authenticate(IConnection connection, Object[] params) {
+		return false;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean authenticate(AuthenticatorType type, Object connection, Object[] params) {
+		return false;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public void setAllowQueryParams(boolean allowQueryParams) {
+		this.allowQueryParams = allowQueryParams;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean isAllowQueryParams() {
+		return allowQueryParams;
 	}
 
 }
