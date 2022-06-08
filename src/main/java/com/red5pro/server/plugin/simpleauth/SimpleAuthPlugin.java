@@ -665,4 +665,9 @@ public class SimpleAuthPlugin extends Red5ProPlugin {
 		this.defaultConfiguration = defaultConfiguration;
 	}
 
+	@Override
+	public void activateCluster() {
+		// TODO Auto-generated method stub
+	}
+
 }
