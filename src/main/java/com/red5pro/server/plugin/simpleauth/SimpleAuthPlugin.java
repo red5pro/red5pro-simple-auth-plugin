@@ -52,6 +52,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.Resource;
 
+import com.red5pro.license.LicenseManager;
+import com.red5pro.plugin.Red5ProPlugin;
 import com.red5pro.server.plugin.simpleauth.datasource.impl.Red5ProFileAuthenticationValidator;
 import com.red5pro.server.plugin.simpleauth.impl.AuthenticatorProvider;
 import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
@@ -72,7 +74,7 @@ import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
  * @author Rajdeep Rath
  *
  */
-public class SimpleAuthPlugin extends Red5Plugin {
+public class SimpleAuthPlugin extends Red5ProPlugin {
 
 	/**
 	 * Logger
@@ -142,7 +144,15 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	}
 
 	@Override
-	public void doStart() throws IOException {
+	public void setValidatedLicense(String valid) {
+		// log.info("set {}",valid);
+		this.valid = valid;
+	}
+
+	@Override
+	public void doStart() {
+		LicenseManager.getInstance().addListener(this);
+
 		try {
 			log.debug("Starting Red5 Professional, Simple Auth Plugin");
 			log.trace("Loading properties");

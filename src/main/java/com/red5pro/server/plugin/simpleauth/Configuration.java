@@ -114,6 +114,8 @@ public class Configuration {
 	 */
 	private IAuthenticationValidator validator;
 
+	private SimpleAuthPlugin plugin;
+
 	/**
 	 * Constructor for Configuration class
 	 */
@@ -129,6 +131,25 @@ public class Configuration {
 	 */
 	public Configuration(boolean active) {
 		this.active = active;
+	}
+
+	/**
+	 * Returns the the value of <code>plugin</code>
+	 * 
+	 * @return the value of <code>plugin</code>
+	 */
+	public SimpleAuthPlugin getPlugin() {
+		return plugin;
+	}
+
+	/**
+	 * Sets the the value of <code>plugin</code>
+	 * 
+	 * @param plugin
+	 *            The SimpleAuthPlugin value to set
+	 */
+	public void setPlugin(SimpleAuthPlugin plugin) {
+		this.plugin = plugin;
 	}
 
 	/**
