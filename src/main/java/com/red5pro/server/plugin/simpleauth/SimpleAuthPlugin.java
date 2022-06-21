@@ -45,7 +45,6 @@ import org.red5.server.api.listeners.IScopeListener;
 import org.red5.server.api.scope.IGlobalScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.scope.ScopeType;
-import org.red5.server.plugin.Red5Plugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
