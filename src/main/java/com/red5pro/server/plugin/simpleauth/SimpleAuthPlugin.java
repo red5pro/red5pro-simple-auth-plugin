@@ -51,6 +51,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.Resource;
 
+import com.red5pro.license.LicenseManager;
+import com.red5pro.plugin.Red5ProPlugin;
 import com.red5pro.server.plugin.simpleauth.datasource.impl.Red5ProFileAuthenticationValidator;
 import com.red5pro.server.plugin.simpleauth.impl.AuthenticatorProvider;
 import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
@@ -82,7 +84,7 @@ import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
  * @author Paul Gregoire
  *
  */
-public class SimpleAuthPlugin extends Red5Plugin {
+public class SimpleAuthPlugin extends Red5ProPlugin {
 
 	private Logger log = LoggerFactory.getLogger(SimpleAuthPlugin.class);
 
@@ -149,7 +151,9 @@ public class SimpleAuthPlugin extends Red5Plugin {
 	}
 
 	@Override
-	public void doStart() throws IOException {
+	public void doStart() {
+        LicenseManager.getInstance().addListener(this);
+
 		try {
 			log.debug("Starting Red5 Professional, Simple Auth Plugin");
 			log.trace("Loading properties");
@@ -790,5 +794,15 @@ public class SimpleAuthPlugin extends Red5Plugin {
 			}
 		}
 	}
+
+    @Override
+    public void activateCluster() {
+        // TODO Auto-generated method stub
+    }
+
+    @Override
+    public void setValidatedLicense(String arg0) {
+        this.valid = valid;
+    }
 
 }
