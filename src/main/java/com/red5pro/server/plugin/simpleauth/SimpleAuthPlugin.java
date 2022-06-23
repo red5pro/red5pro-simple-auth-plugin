@@ -670,6 +670,9 @@ public class SimpleAuthPlugin extends Red5ProPlugin {
 			}
 			// Register the custom auth provider configuration
 			if (adapter != null) {
+                // cleanup previous authProviders
+                cleanUp(scope);
+
 				log.debug("Registering application event handler for {}", scopeName);
 				scopeAuthenticationProviders.put(scopeName, scopeAuthProvider);
 
