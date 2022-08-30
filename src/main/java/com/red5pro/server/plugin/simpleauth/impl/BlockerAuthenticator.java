@@ -31,21 +31,21 @@ import com.red5pro.server.plugin.simpleauth.interfaces.SimpleAuthAuthenticatorAd
 
 /**
  * This class is a authenticator implementation of
- * 
+ *
  * <pre>
  * ISimpleAuthAuthenticator
  * </pre>
- * 
+ *
  * , which is used to reject incoming client connections unconditionally.
- * 
+ *
  * @author Rajdeep Rath
  *
  */
 public class BlockerAuthenticator extends SimpleAuthAuthenticatorAdapter {
 
-	@Override
-	public boolean authenticate(IConnection connection, Object[] params) {
-		return false;
-	}
+    @Override
+    public boolean authenticate(IConnection connection, Object[] params) {
+        return false;
+    }
 
 }

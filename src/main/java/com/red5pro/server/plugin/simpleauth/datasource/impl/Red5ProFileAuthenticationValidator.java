@@ -39,221 +39,221 @@ import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
 
 /**
  * This class is a sample implementation of the
- * 
+ *
  * <pre>
  * IAuthenticationValidator
  * </pre>
- * 
+ *
  * interface. It is meant to serve as a default placeholder and an example for a
- * 
+ *
  * <pre>
  * IAuthenticationValidator
  * </pre>
- * 
+ *
  * implementation. The implementation has access to your data source which
  * provides a means to validate credentials and other parameters.
- * 
+ *
  * This sample implementation uses filesystem as a data source for validating
  * username/password passed by clients.
- * 
+ *
  * @author Rajdeep Rath
  *
  */
 public class Red5ProFileAuthenticationValidator implements IAuthenticationValidator {
 
-	/**
-	 * Logger
-	 */
-	private static Logger logger = LoggerFactory.getLogger(Red5ProFileAuthenticationValidator.class);
+    /**
+     * Logger
+     */
+    private static Logger logger = LoggerFactory.getLogger(Red5ProFileAuthenticationValidator.class);
 
-	/**
-	 * Red5 Context object. This is helpful in resolving resources on the file
-	 * system
-	 */
-	private IContext context;
+    /**
+     * Red5 Context object. This is helpful in resolving resources on the file
+     * system
+     */
+    private IContext context;
 
-	/**
-	 * Properties object intended to load the credentials information from
-	 * filesystem
-	 */
-	private Properties authInformation;
+    /**
+     * Properties object intended to load the credentials information from
+     * filesystem
+     */
+    private Properties authInformation;
 
-	/**
-	 * The name or absolute of the properties file resource which contains
-	 * credentials to validate against
-	 */
-	private String dataSource;
+    /**
+     * The name or absolute of the properties file resource which contains
+     * credentials to validate against
+     */
+    private String dataSource;
 
-	/**
-	 * Constructor for Red5ProFileAuthenticationValidator
-	 */
-	public Red5ProFileAuthenticationValidator() {
+    /**
+     * Constructor for Red5ProFileAuthenticationValidator
+     */
+    public Red5ProFileAuthenticationValidator() {
 
-	}
+    }
 
-	/**
-	 * Constructor for Red5ProFileAuthenticationValidator
-	 * 
-	 * @param dataSource
-	 *            The absolute path of the properties file resource
-	 */
-	public Red5ProFileAuthenticationValidator(String dataSource) {
-		this.dataSource = dataSource;
-	}
+    /**
+     * Constructor for Red5ProFileAuthenticationValidator
+     *
+     * @param dataSource
+     *            The absolute path of the properties file resource
+     */
+    public Red5ProFileAuthenticationValidator(String dataSource) {
+        this.dataSource = dataSource;
+    }
 
-	/**
-	 * Constructor for Red5ProFileAuthenticationValidator.
-	 * <p>
-	 * When the context is not provided the file lookup uses absolute path pattern.
-	 * In presence of the context object, the lookup is relative to the application.
-	 * </p>
-	 * 
-	 * @param context
-	 *            The red5 context object.
-	 * @param dataSource
-	 *            The name of the properties file resource
-	 */
-	public Red5ProFileAuthenticationValidator(IContext context, String dataSource) {
-		this.context = context;
-		this.dataSource = dataSource;
-	}
+    /**
+     * Constructor for Red5ProFileAuthenticationValidator.
+     * <p>
+     * When the context is not provided the file lookup uses absolute path pattern.
+     * In presence of the context object, the lookup is relative to the application.
+     * </p>
+     *
+     * @param context
+     *            The red5 context object.
+     * @param dataSource
+     *            The name of the properties file resource
+     */
+    public Red5ProFileAuthenticationValidator(IContext context, String dataSource) {
+        this.context = context;
+        this.dataSource = dataSource;
+    }
 
-	@Override
-	public void initialize() {
-		loadDataSource();
-	}
+    @Override
+    public void initialize() {
+        loadDataSource();
+    }
 
-	/**
-	 * Loads the content of the resource containing authentication information into
-	 * memory
-	 */
-	private void loadDataSource() {
-		try {
-			logger.debug("Loading data source");
+    /**
+     * Loads the content of the resource containing authentication information into
+     * memory
+     */
+    private void loadDataSource() {
+        try {
+            logger.debug("Loading data source");
 
-			File propertiesFile = null;
+            File propertiesFile = null;
 
-			if (context != null)
-				propertiesFile = context.getApplicationContext().getResource(dataSource).getFile();
-			else
-				propertiesFile = new File(dataSource);
+            if (context != null)
+                propertiesFile = context.getApplicationContext().getResource(dataSource).getFile();
+            else
+                propertiesFile = new File(dataSource);
 
-			if (!propertiesFile.exists())
-				throw new IOException("Datasource not found");
+            if (!propertiesFile.exists())
+                throw new IOException("Datasource not found");
 
-			authInformation = new Properties();
-			authInformation.load(new FileInputStream(propertiesFile));
+            authInformation = new Properties();
+            authInformation.load(new FileInputStream(propertiesFile));
 
-			Enumeration<?> e = authInformation.propertyNames();
-			while (e.hasMoreElements()) {
-				String key = (String) e.nextElement();
-				String value = authInformation.getProperty(key);
-				logger.debug("Key : " + key + ", Value : " + value);
-			}
+            Enumeration<?> e = authInformation.propertyNames();
+            while (e.hasMoreElements()) {
+                String key = (String) e.nextElement();
+                String value = authInformation.getProperty(key);
+                logger.debug("Key : " + key + ", Value : " + value);
+            }
 
-		} catch (IOException e) {
-			e.printStackTrace();
-			logger.error("Error initializing data source " + e.getMessage());
-		}
-	}
+        } catch (IOException e) {
+            e.printStackTrace();
+            logger.error("Error initializing data source " + e.getMessage());
+        }
+    }
 
-	@Override
-	public boolean onConnectAuthenticate(String username, String password, Object[] rest) {
-		try {
-			if (logger.isDebugEnabled()) {
-				logger.debug("Authenticating connection for username " + username + " and password " + password);
-			}
-			if (authInformation.containsKey(username)) {
-				String pass = String.valueOf(authInformation.getProperty(username));
-				if (pass.equalsIgnoreCase(password)) {
-					return true;
-				}
-			}
-		} catch (Exception e) {
-			logger.error("Error reading credentials : {}", e.getMessage());
-		}
-		return false;
-	}
+    @Override
+    public boolean onConnectAuthenticate(String username, String password, Object[] rest) {
+        try {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Authenticating connection for username " + username + " and password " + password);
+            }
+            if (authInformation.containsKey(username)) {
+                String pass = String.valueOf(authInformation.getProperty(username));
+                if (pass.equalsIgnoreCase(password)) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error reading credentials : {}", e.getMessage());
+        }
+        return false;
+    }
 
-	/**
-	 * Returns the value of
-	 * 
-	 * <pre>
-	 * dataSource
-	 * </pre>
-	 * 
-	 * @return The string representing the datasource
-	 */
-	public String getDataSource() {
-		return dataSource;
-	}
+    /**
+     * Returns the value of
+     *
+     * <pre>
+     * dataSource
+     * </pre>
+     *
+     * @return The string representing the datasource
+     */
+    public String getDataSource() {
+        return dataSource;
+    }
 
-	/**
-	 * Sets the value for
-	 * 
-	 * <pre>
-	 * dataSource
-	 * </pre>
-	 * 
-	 * @param dataSource
-	 *            The string to set as the datasource
-	 */
-	public void setDataSource(String dataSource) {
-		this.dataSource = dataSource;
-	}
+    /**
+     * Sets the value for
+     *
+     * <pre>
+     * dataSource
+     * </pre>
+     *
+     * @param dataSource
+     *            The string to set as the datasource
+     */
+    public void setDataSource(String dataSource) {
+        this.dataSource = dataSource;
+    }
 
-	/**
-	 * Returns the value of
-	 * 
-	 * <pre>
-	 * authInformation
-	 * </pre>
-	 * 
-	 * @return The Properties object containing authentication information
-	 */
-	public Properties getAuthInformation() {
-		return authInformation;
-	}
+    /**
+     * Returns the value of
+     *
+     * <pre>
+     * authInformation
+     * </pre>
+     *
+     * @return The Properties object containing authentication information
+     */
+    public Properties getAuthInformation() {
+        return authInformation;
+    }
 
-	/**
-	 * Sets the value of
-	 * 
-	 * <pre>
-	 * authInformation
-	 * </pre>
-	 * 
-	 * @param authInformation
-	 *            The Properties object to set
-	 */
-	public void setAuthInformation(Properties authInformation) {
-		this.authInformation = authInformation;
-	}
+    /**
+     * Sets the value of
+     *
+     * <pre>
+     * authInformation
+     * </pre>
+     *
+     * @param authInformation
+     *            The Properties object to set
+     */
+    public void setAuthInformation(Properties authInformation) {
+        this.authInformation = authInformation;
+    }
 
-	/**
-	 * Returns the value of
-	 * 
-	 * <pre>
-	 * context
-	 * </pre>
-	 * 
-	 * @return The IContext object
-	 */
-	public IContext getContext() {
-		return context;
-	}
+    /**
+     * Returns the value of
+     *
+     * <pre>
+     * context
+     * </pre>
+     *
+     * @return The IContext object
+     */
+    public IContext getContext() {
+        return context;
+    }
 
-	/**
-	 * Sets the value of
-	 * 
-	 * <pre>
-	 * context
-	 * </pre>
-	 * 
-	 * @param context
-	 *            The IContext to return
-	 */
-	public void setContext(IContext context) {
-		this.context = context;
-	}
+    /**
+     * Sets the value of
+     *
+     * <pre>
+     * context
+     * </pre>
+     *
+     * @param context
+     *            The IContext to return
+     */
+    public void setContext(IContext context) {
+        this.context = context;
+    }
 
 }

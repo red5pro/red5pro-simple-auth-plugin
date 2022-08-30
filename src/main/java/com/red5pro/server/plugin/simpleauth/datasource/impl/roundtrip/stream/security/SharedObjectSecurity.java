@@ -37,70 +37,70 @@ import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.RoundTripA
 
 /**
  * This class implements the
- * 
+ *
  * <pre>
  * ISharedObjectSecurity
  * </pre>
- * 
+ *
  * interface to intercept shared object actions. The implementation captures
  * necessary params and passes them to remote server via the
  * `RoundTripAuthValidator` class for authentication.
- * 
+ *
  * Shared object request is accepted or rejected based on remote server
  * validation response.
- * 
+ *
  * @author Paul Gregoire
  *
  */
 public class SharedObjectSecurity extends SecurityAdapter implements ISharedObjectSecurity {
 
-	public SharedObjectSecurity(RoundTripAuthValidator roundTripAuthValidator) {
-		super(roundTripAuthValidator);
-	}
+    public SharedObjectSecurity(RoundTripAuthValidator roundTripAuthValidator) {
+        super(roundTripAuthValidator);
+    }
 
-	@Override
-	public boolean isCreationAllowed(IScope scope, String name, boolean persistent) {
-		// an npe is possible farther down, if the connection isn't available here
-		IConnection connection = Red5.getConnectionLocal();
-		if (connection != null) {
-			// attrs inspection is only for debug level logging, using a guard for
-			// optimization
-			logConnectionParameters(connection);
-			return roundTripAuthValidator.onSharedObjectAuthenticate(connection, scope, name);
-		}
-		// default result if a connection isn't present
-		return defaultResponse;
-	}
+    @Override
+    public boolean isCreationAllowed(IScope scope, String name, boolean persistent) {
+        // an npe is possible farther down, if the connection isn't available here
+        IConnection connection = Red5.getConnectionLocal();
+        if (connection != null) {
+            // attrs inspection is only for debug level logging, using a guard for
+            // optimization
+            logConnectionParameters(connection);
+            return roundTripAuthValidator.onSharedObjectAuthenticate(connection, scope, name);
+        }
+        // default result if a connection isn't present
+        return defaultResponse;
+    }
 
-	@Override
-	public boolean isConnectionAllowed(ISharedObject so) {
-		// an npe is possible farther down, if the connection isn't available here
-		IConnection connection = Red5.getConnectionLocal();
-		if (connection != null) {
-			// attrs inspection is only for debug level logging, using a guard for
-			// optimization
-			logConnectionParameters(connection);
-			// XXX may have to switch from the actual so being the "scope" to the parent, if
-			// theres an issue
-			return roundTripAuthValidator.onSharedObjectAuthenticate(connection, so.getParent(), so.getName());
-		}
-		// default result if a connection isn't present
-		return defaultResponse;
-	}
+    @Override
+    public boolean isConnectionAllowed(ISharedObject so) {
+        // an npe is possible farther down, if the connection isn't available here
+        IConnection connection = Red5.getConnectionLocal();
+        if (connection != null) {
+            // attrs inspection is only for debug level logging, using a guard for
+            // optimization
+            logConnectionParameters(connection);
+            // XXX may have to switch from the actual so being the "scope" to the parent, if
+            // theres an issue
+            return roundTripAuthValidator.onSharedObjectAuthenticate(connection, so.getParent(), so.getName());
+        }
+        // default result if a connection isn't present
+        return defaultResponse;
+    }
 
-	@Override
-	public boolean isWriteAllowed(ISharedObject so, String key, Object value) {
-		return defaultResponse;
-	}
+    @Override
+    public boolean isWriteAllowed(ISharedObject so, String key, Object value) {
+        return defaultResponse;
+    }
 
-	@Override
-	public boolean isDeleteAllowed(ISharedObject so, String key) {
-		return defaultResponse;
-	}
+    @Override
+    public boolean isDeleteAllowed(ISharedObject so, String key) {
+        return defaultResponse;
+    }
 
-	@Override
-	public boolean isSendAllowed(ISharedObject so, String message, List<?> arguments) {
-		return defaultResponse;
-	}
+    @Override
+    public boolean isSendAllowed(ISharedObject so, String message, List<?> arguments) {
+        return defaultResponse;
+    }
 
 }
