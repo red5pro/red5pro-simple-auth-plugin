@@ -42,6 +42,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.apache.mina.filter.query.Response;
 import org.red5.server.adapter.IApplication;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.IClient;
@@ -209,13 +210,12 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	@Override
 	public boolean onConnectAuthenticate(String username, String password, Object[] rest) {
 		IConnection connection = Red5.getConnectionLocal();
-
 		if (username == null || password == null) {
 			logger.error("One or more missing parameter(s). Parameter 'username' and/or 'password' not provided");
 			return false;
 		}
 
-		// just store paramters as we will be using these later
+		// just store parameters as we will be using these later
 		connection.setAttribute("username", username);
 		connection.setAttribute("password", password);
 
@@ -253,6 +253,18 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 				logger.error("Client 'token' is required but was not provided by connection {}.", connection);
 				return false;
 			}
+		}
+
+		// Websocket connections do not go through onPublishAuthenticate and
+		// onPlaybackAuthenticate so we authenticate those here.
+		// avoids dependency on mega
+		if (connection.getClass().getName().contains("SharedObjectCapableConnection")) {
+			connection.setAttribute("roletype", "websocket");
+			JsonObject response = authenticateOverHttp("websocket", username, password, token, null);
+			if (response.has("result")) {
+				return response.get("result").getAsBoolean();
+			}
+			return false;
 		}
 
 		return true;
@@ -309,7 +321,7 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 		String password = conn.getStringAttribute("password");
 		String token = (conn.hasAttribute("token")) ? conn.getStringAttribute("token") : "";
 		String type = "publisher";
-
+		
 		if (password != null && username != null) {
 			if (!this.lazyAuth) {
 				try {
@@ -413,8 +425,12 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 			data.setType(type);
 			data.setUsername(username);
 			data.setPassword(password);
-			data.setToken(token);
-			data.setStreamID(stream);
+			if (token != null) {
+				data.setToken(token);
+			}
+			if (stream != null) {
+				data.setStreamID(stream);
+			}
 
 			String json = gson.toJson(data);
 
@@ -474,16 +490,20 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 	 *
 	 * @return JsonObject JSON payload response from the remote server
 	 */
-	public JsonObject invalidateCredentialsOverHttp(String username, String password, String token, String stream) {
+	public JsonObject invalidateCredentialsOverHttp(String type, String username, String password, String token,
+			String stream) {
 		JsonObject result = null;
 		CloseableHttpClient client = null;
 
 		try {
 			AuthData data = new AuthData();
+			data.setType(type);
 			data.setUsername(username);
 			data.setPassword(password);
 			data.setToken(token);
-			data.setStreamID(stream);
+			if (stream != null) {
+				data.setStreamID(stream);
+			}
 
 			String json = gson.toJson(data);
 
@@ -584,11 +604,22 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 		this.context = context;
 	}
 
+	private boolean isPublisherConnection(IConnection conn) {
+		return conn.hasAttribute("roletype") && conn.getStringAttribute("roletype").equals("publisher")
+				&& conn.hasAttribute("streamID") && conn.hasAttribute("username") && conn.hasAttribute("password");
+	}
+
+	private boolean isWebSocketConnection(IConnection conn) {
+		return conn.hasAttribute("roletype") && conn.getStringAttribute("roletype").equals("websocket")
+				&& conn.hasAttribute("username") && conn.hasAttribute("password");
+	}
+
 	@Override
 	public void appDisconnect(IConnection conn) {
-
-		if (conn.hasAttribute("roletype") && conn.getStringAttribute("roletype").equals("publisher")
-				&& conn.hasAttribute("streamID") && conn.hasAttribute("username") && conn.hasAttribute("password")) {
+		logger.debug("disconnect: {}", conn);
+		boolean isPublisher = isPublisherConnection(conn);
+		boolean isWebSocketConnection = isWebSocketConnection(conn);
+		if (isPublisher || isWebSocketConnection) {
 
 			String username = conn.getStringAttribute("username");
 			String password = conn.getStringAttribute("password");
@@ -596,7 +627,8 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 			String token = conn.getStringAttribute("token");
 
 			if (invalidateEndPoint != null && invalidateEndPoint.length() > 3) {
-				invalidateCredentialsOverHttp(username, password, token, streamID);
+				invalidateCredentialsOverHttp(isPublisher ? "publisher" : "websocket", username, password, token,
+						streamID);
 			}
 		}
 	}

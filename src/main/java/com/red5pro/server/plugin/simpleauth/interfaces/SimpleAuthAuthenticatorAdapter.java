@@ -23,29 +23,77 @@
 // WHETHER IN  AN  ACTION  OF  CONTRACT,  TORT  OR  OTHERWISE,  ARISING  FROM,  OUT  OF  OR  IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-package com.red5pro.server.plugin.simpleauth.impl;
+package com.red5pro.server.plugin.simpleauth.interfaces;
 
 import org.red5.server.api.IConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.red5pro.server.plugin.simpleauth.interfaces.SimpleAuthAuthenticatorAdapter;
+import com.red5pro.server.plugin.simpleauth.AuthenticatorType;
+import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
 
 /**
- * This class is a authenticator implementation of
+ * Abstract adapter class for ISimpleAuthAuthenticator.
  * 
- * <pre>
- * ISimpleAuthAuthenticator
- * </pre>
- * 
- * , which is used to reject incoming client connections unconditionally.
- * 
- * @author Rajdeep Rath
+ * @author Paul Gregoire
  *
  */
-public class BlockerAuthenticator extends SimpleAuthAuthenticatorAdapter {
+public abstract class SimpleAuthAuthenticatorAdapter implements ISimpleAuthAuthenticator {
 
+	protected Logger logger = LoggerFactory.getLogger(this.getClass());
+
+	/**
+	 * The IAuthenticationValidator object for this authenticator
+	 */
+	protected IAuthenticationValidator source;
+
+	/**
+	 * Flag to enable/disable connection params check on query params
+	 */
+	protected boolean allowQueryParams;
+
+	/**
+	 * Authenticator entry point
+	 */
+	public void initialize() {
+		// initialization tasks
+		logger.debug("{} initialized", this.getClass().getName());
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public void setDataSource(IAuthenticationValidator source) {
+		this.source = source;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public IAuthenticationValidator getDataSource() {
+		return source;
+	}
+
+	/** {@inheritDoc} */
 	@Override
 	public boolean authenticate(IConnection connection, Object[] params) {
 		return false;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean authenticate(AuthenticatorType type, Object connection, Object[] params) {
+		return false;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public void setAllowQueryParams(boolean allowQueryParams) {
+		this.allowQueryParams = allowQueryParams;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean isAllowQueryParams() {
+		return allowQueryParams;
 	}
 
 }
