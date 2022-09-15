@@ -43,164 +43,162 @@ import com.red5pro.server.plugin.simpleauth.interfaces.SimpleAuthAuthenticatorAd
 
 /**
  * This class is a authenticator implementation for SRT and is based on
- * 
+ *
  * <pre>
  * RTCAuthAuthenticator
  * </pre>
- * 
+ *
  * , which is used to handle authentication for WebRTC clients.
- * 
+ *
  * @author Rajdeep Rath
  * @author Paul Gregoire
  *
  */
 public class HTTPAuthenticator extends SimpleAuthAuthenticatorAdapter {
 
-	@Override
-	public boolean authenticate(AuthenticatorType type, Object connection, Object[] params) {
-		logger.trace("authenticate - type: {} connection: {} params: {}", type, connection, params[0]);
-		boolean authenticated = false;
-		if (connection instanceof HttpSession) {
-			try {
-				HttpSession session = (HttpSession) connection;
-				// lookup any existing wrapper for this session
-				HTTPSessionWrapperConnection sessionWrapper = (HTTPSessionWrapperConnection) session
-						.getAttribute(ConnectionAttributeKey.CONNECTION_TAG.value);
-				if (sessionWrapper == null) {
-					sessionWrapper = new HTTPSessionWrapperConnection(session);
-				}
-				Red5.setConnectionLocal(sessionWrapper);
-				// check for previous authenticated permission
-				String permissions = (String) session.getAttribute(ConnectionAttributeKey.PERMISSIONS.value);
-				if (permissions != null && permissions.contains("authorization_completed")) {
-					authenticated = true;
-				} else {
-					@SuppressWarnings("unchecked")
-					Map<String, Object> map = (Map<String, Object>) params[0];
-					String username = (String) map.get(IAuthenticationValidator.USERNAME);
-					String password = (String) map.get(IAuthenticationValidator.PASSWORD);
-					// set authentication result
-					authenticated = source.onConnectAuthenticate(username, password, params);
-					if (authenticated) {
-						if (permissions == null) {
-							session.setAttribute(ConnectionAttributeKey.PERMISSIONS.value, "authorization_completed");
-						} else {
-							session.setAttribute(ConnectionAttributeKey.PERMISSIONS.value,
-									String.format("%s,authorization_completed", permissions));
-						}
-					}
-				}
-			} catch (Exception e) {
-				logger.error("Error authenticating connection {}", e.getMessage());
-			} finally {
-				Red5.setConnectionLocal(null);
-			}
-		} else {
-			logger.warn("Connection type is invalid for authentication", connection.getClass().getName());
-		}
-		return authenticated;
-	}
+    @Override
+    public boolean authenticate(AuthenticatorType type, Object connection, Object[] params) {
+        logger.trace("authenticate - type: {} connection: {} params: {}", type, connection, params[0]);
+        boolean authenticated = false;
+        if (connection instanceof HttpSession) {
+            try {
+                HttpSession session = (HttpSession) connection;
+                // lookup any existing wrapper for this session
+                HTTPSessionWrapperConnection sessionWrapper = (HTTPSessionWrapperConnection) session.getAttribute(ConnectionAttributeKey.CONNECTION_TAG.value);
+                if (sessionWrapper == null) {
+                    sessionWrapper = new HTTPSessionWrapperConnection(session);
+                }
+                Red5.setConnectionLocal(sessionWrapper);
+                // check for previous authenticated permission
+                String permissions = (String) session.getAttribute(ConnectionAttributeKey.PERMISSIONS.value);
+                if (permissions != null && permissions.contains("authorization_completed")) {
+                    authenticated = true;
+                } else {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> map = (Map<String, Object>) params[0];
+                    String username = (String) map.get(IAuthenticationValidator.USERNAME);
+                    String password = (String) map.get(IAuthenticationValidator.PASSWORD);
+                    // set authentication result
+                    authenticated = source.onConnectAuthenticate(username, password, params);
+                    if (authenticated) {
+                        if (permissions == null) {
+                            session.setAttribute(ConnectionAttributeKey.PERMISSIONS.value, "authorization_completed");
+                        } else {
+                            session.setAttribute(ConnectionAttributeKey.PERMISSIONS.value, String.format("%s,authorization_completed", permissions));
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Error authenticating connection {}", e.getMessage());
+            } finally {
+                Red5.setConnectionLocal(null);
+            }
+        } else {
+            logger.warn("Connection type is invalid for authentication", connection.getClass().getName());
+        }
+        return authenticated;
+    }
 
-	/**
-	 * Very basic implementation of an IConnection for an incoming HTTP based
-	 * client.
-	 */
-	class HTTPSessionWrapperConnection extends BaseConnection {
+    /**
+     * Very basic implementation of an IConnection for an incoming HTTP based
+     * client.
+     */
+    class HTTPSessionWrapperConnection extends BaseConnection {
 
-		final HttpSession session;
+        final HttpSession session;
 
-		HTTPSessionWrapperConnection(Object connection) {
-			super("TRANSIENT");
-			// connection here should be the HttpRequest
-			HttpServletRequest httpRequest = (HttpServletRequest) connection;
-			session = httpRequest.getSession();
-		}
+        HTTPSessionWrapperConnection(Object connection) {
+            super("TRANSIENT");
+            // connection here should be the HttpRequest
+            HttpServletRequest httpRequest = (HttpServletRequest) connection;
+            session = httpRequest.getSession();
+        }
 
-		@Override
-		public boolean setAttribute(String name, Object value) {
-			session.setAttribute(name, value);
-			return true;
-		}
+        @Override
+        public boolean setAttribute(String name, Object value) {
+            session.setAttribute(name, value);
+            return true;
+        }
 
-		@Override
-		public Set<String> getAttributeNames() {
-			Set<String> names = new HashSet<>();
-			session.getAttributeNames().asIterator().forEachRemaining(name -> {
-				names.add(name);
-			});
-			return names;
-		}
+        @Override
+        public Set<String> getAttributeNames() {
+            Set<String> names = new HashSet<>();
+            session.getAttributeNames().asIterator().forEachRemaining(name -> {
+                names.add(name);
+            });
+            return names;
+        }
 
-		@Override
-		public Map<String, Object> getAttributes() {
-			Map<String, Object> map = new HashMap<>();
-			session.getAttributeNames().asIterator().forEachRemaining(name -> {
-				map.put(name, session.getAttribute(name));
-			});
-			return map;
-		}
+        @Override
+        public Map<String, Object> getAttributes() {
+            Map<String, Object> map = new HashMap<>();
+            session.getAttributeNames().asIterator().forEachRemaining(name -> {
+                map.put(name, session.getAttribute(name));
+            });
+            return map;
+        }
 
-		@Override
-		public Object getAttribute(String name) {
-			return session.getAttribute(name);
-		}
+        @Override
+        public Object getAttribute(String name) {
+            return session.getAttribute(name);
+        }
 
-		@Override
-		public boolean hasAttribute(String name) {
-			return session.getAttribute(name) != null;
-		}
+        @Override
+        public boolean hasAttribute(String name) {
+            return session.getAttribute(name) != null;
+        }
 
-		@Override
-		public String getStringAttribute(String name) {
-			return (String) session.getAttribute(name);
-		}
+        @Override
+        public String getStringAttribute(String name) {
+            return (String) session.getAttribute(name);
+        }
 
-		@Override
-		public boolean removeAttribute(String name) {
-			session.removeAttribute(name);
-			return true;
-		}
+        @Override
+        public boolean removeAttribute(String name) {
+            session.removeAttribute(name);
+            return true;
+        }
 
-		@Override
-		public void removeAttributes() {
-			session.getAttributeNames().asIterator().forEachRemaining(name -> {
-				session.removeAttribute(name);
-			});
-		}
+        @Override
+        public void removeAttributes() {
+            session.getAttributeNames().asIterator().forEachRemaining(name -> {
+                session.removeAttribute(name);
+            });
+        }
 
-		@Override
-		public String getProtocol() {
-			return "HTTP";
-		}
+        @Override
+        public String getProtocol() {
+            return "HTTP";
+        }
 
-		@Override
-		public Encoding getEncoding() {
-			return Encoding.RAW;
-		}
+        @Override
+        public Encoding getEncoding() {
+            return Encoding.RAW;
+        }
 
-		@Override
-		public void ping() {
-		}
+        @Override
+        public void ping() {
+        }
 
-		@Override
-		public int getLastPingTime() {
-			return (int) session.getLastAccessedTime();
-		}
+        @Override
+        public int getLastPingTime() {
+            return (int) session.getLastAccessedTime();
+        }
 
-		@Override
-		public void setBandwidth(int mbits) {
-		}
+        @Override
+        public void setBandwidth(int mbits) {
+        }
 
-		@Override
-		public long getReadBytes() {
-			return 0;
-		}
+        @Override
+        public long getReadBytes() {
+            return 0;
+        }
 
-		@Override
-		public long getWrittenBytes() {
-			return 0;
-		}
+        @Override
+        public long getWrittenBytes() {
+            return 0;
+        }
 
-	}
+    }
 
 }

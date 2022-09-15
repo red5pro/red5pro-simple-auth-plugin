@@ -34,43 +34,43 @@ import com.red5pro.server.plugin.simpleauth.datasource.impl.roundtrip.RoundTripA
 
 /**
  * This class implements the
- * 
+ *
  * <pre>
  * IStreamPublishSecurity
  * </pre>
- * 
+ *
  * interface to intercept stream publish action. The implementation captures
  * necessary publish params and passes them to remote server via the
  * `RoundTripAuthValidator` class for authentication.
- * 
+ *
  * Publisher request is accepted or rejected based on remote server validation
  * response.
- * 
+ *
  * @author Rajdeep Rath
  *
  */
 public class PublishSecurity extends SecurityAdapter implements IStreamPublishSecurity {
 
-	public PublishSecurity(RoundTripAuthValidator roundTripAuthValidator) {
-		super(roundTripAuthValidator);
-	}
+    public PublishSecurity(RoundTripAuthValidator roundTripAuthValidator) {
+        super(roundTripAuthValidator);
+    }
 
-	@Override
-	public boolean isPublishAllowed(IScope scope, String name, String mode) {
-		// an npe is possible farther down, if the connection isn't available here
-		IConnection connection = Red5.getConnectionLocal();
-		if (connection != null) {
-			// attrs inspection is only for debug level logging, using a guard for
-			// optimization
-			logConnectionParameters(connection);
-			return roundTripAuthValidator.onPublishAuthenticate(connection, scope, name);
-		}
-		// default publish result if a connection isn't present
-		return defaultResponse;
-	}
+    @Override
+    public boolean isPublishAllowed(IScope scope, String name, String mode) {
+        // an npe is possible farther down, if the connection isn't available here
+        IConnection connection = Red5.getConnectionLocal();
+        if (connection != null) {
+            // attrs inspection is only for debug level logging, using a guard for
+            // optimization
+            logConnectionParameters(connection);
+            return roundTripAuthValidator.onPublishAuthenticate(connection, scope, name);
+        }
+        // default publish result if a connection isn't present
+        return defaultResponse;
+    }
 
-	public void setDefaultResponse(boolean defaultResponse) {
-		this.defaultResponse = defaultResponse;
-	}
+    public void setDefaultResponse(boolean defaultResponse) {
+        this.defaultResponse = defaultResponse;
+    }
 
 }
