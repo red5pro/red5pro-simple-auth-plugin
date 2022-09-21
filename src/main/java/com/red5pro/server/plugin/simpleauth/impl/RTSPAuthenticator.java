@@ -35,45 +35,45 @@ import com.red5pro.server.plugin.simpleauth.interfaces.SimpleAuthAuthenticatorAd
 
 /**
  * This class is a authenticator implementation of
- * 
+ *
  * <pre>
  * ISimpleAuthAuthenticator
  * </pre>
- * 
+ *
  * , which is used to handle authentication for RTSP clients.
- * 
+ *
  * @author Rajdeep Rath
  *
  */
 public class RTSPAuthenticator extends SimpleAuthAuthenticatorAdapter {
 
-	@Override
-	public boolean authenticate(IConnection connection, Object[] params) {
-		logger.debug("authenticate:\n{}\nparams: {}", connection, params);
-		// set connection local or std rtmp processes wont find the connection where
-		// they expect it
-		Red5.setConnectionLocal(connection);
-		try {
-			if (params.length == 0 || params[0] == null) {
-				throw new Exception("Missing connection parameter(s)");
-			}
-			Map<String, Object> map = new HashMap<String, Object>();
-			for (int i = 0; i < params.length; i++) {
-				String[] param = String.valueOf(params[i]).split("=");
-				map.put(param[0], param[1]);
-			}
-			if (!map.containsKey("username") || !map.containsKey("password")) {
-				throw new Exception("Missing authentication parameter(s)");
-			}
-			String username = String.valueOf(map.get("username"));
-			String password = String.valueOf(map.get("password"));
-			Object[] rest = new Object[1];
-			rest[0] = map;
-			return source.onConnectAuthenticate(username, password, rest);
-		} catch (Exception e) {
-			logger.error("Error authenticating connection {}", e.getMessage());
-		}
-		return false;
-	}
+    @Override
+    public boolean authenticate(IConnection connection, Object[] params) {
+        logger.debug("authenticate:\n{}\nparams: {}", connection, params);
+        // set connection local or std rtmp processes wont find the connection where
+        // they expect it
+        Red5.setConnectionLocal(connection);
+        try {
+            if (params.length == 0 || params[0] == null) {
+                throw new Exception("Missing connection parameter(s)");
+            }
+            Map<String, Object> map = new HashMap<String, Object>();
+            for (int i = 0; i < params.length; i++) {
+                String[] param = String.valueOf(params[i]).split("=");
+                map.put(param[0], param[1]);
+            }
+            if (!map.containsKey("username") || !map.containsKey("password")) {
+                throw new Exception("Missing authentication parameter(s)");
+            }
+            String username = String.valueOf(map.get("username"));
+            String password = String.valueOf(map.get("password"));
+            Object[] rest = new Object[1];
+            rest[0] = map;
+            return source.onConnectAuthenticate(username, password, rest);
+        } catch (Exception e) {
+            logger.error("Error authenticating connection {}", e.getMessage());
+        }
+        return false;
+    }
 
 }
