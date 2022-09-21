@@ -39,68 +39,68 @@ import com.red5pro.server.plugin.simpleauth.interfaces.SimpleAuthAuthenticatorAd
 
 /**
  * This class is a authenticator implementation for SRT and is based on
- * 
+ *
  * <pre>
  * RTCAuthAuthenticator
  * </pre>
- * 
+ *
  * , which is used to handle authentication for WebRTC clients.
- * 
+ *
  * @author Rajdeep Rath
  * @author Paul Gregoire
  *
  */
 public class SRTAuthenticator extends SimpleAuthAuthenticatorAdapter {
 
-	@Override
-	public boolean authenticate(IConnection connection, Object[] params) {
-		logger.debug("authenticate:\n{}\nparams: {}", connection, params);
-		// set connection local or std rtmp processes wont find the connection where
-		// they expect it
-		Red5.setConnectionLocal(connection);
-		try {
-			Map<String, Object> map = getParametersMap(connection.getConnectParams());
-			if (!map.containsKey("username") || !map.containsKey("password")) {
-				throw new Exception("Missing connection parameter(s)");
-			}
-			String username = String.valueOf(map.get("username"));
-			String password = String.valueOf(map.get("password"));
-			Object[] rest = new Object[1];
-			rest[0] = map;
-			return source.onConnectAuthenticate(username, password, rest);
-		} catch (Exception e) {
-			logger.error("Error authenticating connection " + e.getMessage());
-		}
-		return false;
-	}
+    @Override
+    public boolean authenticate(IConnection connection, Object[] params) {
+        logger.debug("authenticate:\n{}\nparams: {}", connection, params);
+        // set connection local or std rtmp processes wont find the connection where
+        // they expect it
+        Red5.setConnectionLocal(connection);
+        try {
+            Map<String, Object> map = getParametersMap(connection.getConnectParams());
+            if (!map.containsKey("username") || !map.containsKey("password")) {
+                throw new Exception("Missing connection parameter(s)");
+            }
+            String username = String.valueOf(map.get("username"));
+            String password = String.valueOf(map.get("password"));
+            Object[] rest = new Object[1];
+            rest[0] = map;
+            return source.onConnectAuthenticate(username, password, rest);
+        } catch (Exception e) {
+            logger.error("Error authenticating connection " + e.getMessage());
+        }
+        return false;
+    }
 
-	/**
-	 * Extracts connections params from query string for clients and returns as a
-	 * cleaned up Map
-	 * 
-	 * @param content
-	 *            The raw query params map
-	 * @return processed parameters map
-	 */
-	private Map<String, Object> getParametersMap(Map<String, Object> content) {
-		Map<String, Object> map = new HashMap<String, Object>();
-		Iterator<Entry<String, Object>> it = content.entrySet().iterator();
-		while (it.hasNext()) {
-			Map.Entry<String, Object> pair = it.next();
-			String key = pair.getKey();
-			String value;
-			String charset = StandardCharsets.UTF_8.name();
-			try {
-				value = URLDecoder.decode(String.valueOf(pair.getValue()), charset);
-			} catch (Exception e) {
-				value = String.valueOf(pair.getValue());
-			}
-			if (key.indexOf("?") == 0) {
-				key = key.replace("?", "");
-			}
-			map.put(key, value);
-		}
-		return map;
-	}
+    /**
+     * Extracts connections params from query string for clients and returns as a
+     * cleaned up Map
+     *
+     * @param content
+     *            The raw query params map
+     * @return processed parameters map
+     */
+    private Map<String, Object> getParametersMap(Map<String, Object> content) {
+        Map<String, Object> map = new HashMap<String, Object>();
+        Iterator<Entry<String, Object>> it = content.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, Object> pair = it.next();
+            String key = pair.getKey();
+            String value;
+            String charset = StandardCharsets.UTF_8.name();
+            try {
+                value = URLDecoder.decode(String.valueOf(pair.getValue()), charset);
+            } catch (Exception e) {
+                value = String.valueOf(pair.getValue());
+            }
+            if (key.indexOf("?") == 0) {
+                key = key.replace("?", "");
+            }
+            map.put(key, value);
+        }
+        return map;
+    }
 
 }

@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 	<groupId>com.red5pro</groupId>
 	<artifactId>red5pro-simple-auth</artifactId>
-	<version>10.2.2</version>
+	<version>10.6.0</version>
 	<packaging>jar</packaging>
 	<name>red5pro-simple-auth-plugin</name>
 	<url>https://github.com/red5pro/red5pro-simple-auth-plugin</url>
@@ -38,8 +38,8 @@
 		<maven.build.timestamp.format>MM.dd.yyyy HH:mm</maven.build.timestamp.format>
 		<timestamp>${maven.build.timestamp}</timestamp>
         <red5pro-common.version>9.2.7</red5pro-common.version>
-		<red5.version>1.2.10</red5.version>
-		<mina.version>2.0.21</mina.version>
+		<red5.version>1.2.31</red5.version>
+		<mina.version>2.0.23</mina.version>
 		<spring.version>[5.3.5,)</spring.version>
 		<commons-lang3.version>3.11</commons-lang3.version>
 		<httpcomponents.version>[4.5.13,)</httpcomponents.version>
@@ -235,17 +235,17 @@
 			<!-- Project http://code.revelc.net/formatter-maven-plugin/ -->
 			<plugin>
 				<groupId>net.revelc.code.formatter</groupId>
-				<artifactId>formatter-maven-plugin</artifactId>
-				<version>2.19.0</version>
-				<executions>
-					<execution>
-						<goals>
-							<goal>format</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<configFile>../Red5Pro-formatter.xml</configFile>
+                <artifactId>formatter-maven-plugin</artifactId>
+                <version>2.19.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>format</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <configFile>Red5Pro-formatter.xml</configFile>
 					<!-- Enforce line-feed (linux,mac) line endings att -->
 					<lineEnding>LF</lineEnding>
 					<!-- Exclude xml and props files -->

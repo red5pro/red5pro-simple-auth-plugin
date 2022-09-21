@@ -69,17 +69,17 @@ import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
 
 /**
  * This class is a sample implementation of the
- * 
+ *
  * <pre>
  * IAuthenticationValidator
  * </pre>
- * 
+ *
  * interface. It is meant to serve as a default placeholder and an example for a
- * 
+ *
  * <pre>
  * IAuthenticationValidator
  * </pre>
- * 
+ *
  * implementation. The implementation has access to your data source which
  * provides a means to validate credentials and other parameters.
  *
@@ -91,604 +91,602 @@ import com.red5pro.server.plugin.simpleauth.interfaces.IAuthenticationValidator;
  */
 public class RoundTripAuthValidator implements IAuthenticationValidator, IApplication {
 
-	private static Logger logger = LoggerFactory.getLogger(RoundTripAuthValidator.class);
-
-	/**
-	 * Property to store validation endpoint path (relative to root)
-	 */
-	private String validateEndPoint;
-
-	/**
-	 * Property to store invalidation endpoint path (relative to root)
-	 */
-	private String invalidateEndPoint;
-
-	/**
-	 * Optional authentication mode. If set to true, clients are allowed access
-	 * initially and validated in a parallel thread instead of blocking access for
-	 * authentication
-	 */
-	private boolean lazyAuth;
-
-	/**
-	 * Property to indicate whether `token` parameter is optional or mandatory
-	 */
-	private boolean clientTokenRequired;
-
-	/**
-	 * Red5 Context object. This is helpful in resolving resources on the file
-	 * system
-	 */
-	private IContext context;
-
-	/**
-	 * Red5 application object. This gives access to the parent application
-	 */
-	private MultiThreadedApplicationAdapter adapter;
-
-	/**
-	 * Gson object for serializing/deserializing JSON
-	 */
-	private final Gson gson = new Gson();
-
-	/**
-	 * Defines the HTTP client timeout
-	 */
-	private static final int TIMEOUT = 9000;
-
-	private ExecutorService threadPoolExecutor;
-
-	/**
-	 * Stores the remote server access protocol (HTTP/HTTPS)
-	 */
-	private String protocol;
-
-	/**
-	 * Stores remote server host name
-	 */
-	private String host;
-
-	/**
-	 * Stores remote access port (80 or 443 or custom)
-	 */
-	private String port;
-
-	public void setProtocol(String p) {
-		protocol = p;
-	}
-
-	public String getProtocol() {
-		return protocol;
-	}
-
-	public void setHost(String h) {
-		host = h;
-	}
-
-	public String getHost() {
-		return host;
-	}
-
-	public void setPort(String p) {
-		port = p;
-	}
-
-	public String getPort() {
-		return port;
-	}
-
-	@Override
-	public void initialize() {
-		logger.info("initialization part");
-		if (lazyAuth) {
-			threadPoolExecutor = Executors.newCachedThreadPool();
-		}
-		if (adapter != null) {
-			adapter.registerStreamPublishSecurity(new PublishSecurity(this));
-			adapter.registerStreamPlaybackSecurity(new PlaybackSecurity(this));
-			adapter.registerSharedObjectSecurity(new SharedObjectSecurity(this));
-			adapter.addListener(this);
-		} else {
-			logger.error("Something is wrong, no access to application adapter");
-		}
-		logger.debug("adapter = {}\ncontext = {}", adapter, context);
-		logger.debug("auth host = {}\nauth port = {}\nauth protocol = {}", host, port, protocol);
-		logger.debug("authEndPoint = {}\ninvalidateEndPoint = {}\nlazyAuth = {}", validateEndPoint, invalidateEndPoint,
-				lazyAuth);
-	}
-
-	@Override
-	public boolean onConnectAuthenticate(String username, String password, Object[] rest) {
-		logger.trace("onConnectAuthenticate - username: {} password: {} rest: {}", username, password, rest[0]);
-		// get the connection
-		IConnection connection = Red5.getConnectionLocal();
-		// check for blank and/or "undefined"
-		if (StringUtils.isBlank(username) || StringUtils.isBlank(password) || "undefined".equals(username)
-				|| "undefined".equals(password)) {
-			logger.error("One or more missing parameter(s). Parameter 'username' and/or 'password' not provided");
-			return false;
-		}
-		// just store parameters as we will be using these later
-		connection.setAttribute("username", username);
-		connection.setAttribute("password", password);
-		logger.debug("Parameters 'username' and 'password' stored on client connection! {}", connection);
-		String token = null;
-		if (rest.length == 1) {
-			if (rest[0] instanceof Map) {
-				@SuppressWarnings("unchecked")
-				Map<String, Object> map = (Map<String, Object>) rest[0];
-				// collect token if exists
-				if (map.containsKey(TOKEN)) {
-					token = String.valueOf(map.get(TOKEN));
-					connection.setAttribute("token", token);
-					logger.debug("Parameter 'token' stored on client connection {}", connection);
-				} else if (clientTokenRequired && !username.equals("cluster-restreamer")) {
-					logger.error("Client 'token' is required but was not provided by connection {}.", connection);
-					return false;
-				}
-			} else {
-				logger.error("Unexpected parameter!. Expected Map got {}", rest[0].getClass().getName());
-				return false;
-			}
-		} else if (rest.length > 1) {
-			logger.info("rtmp");
-			// probably rtmp connection params
-			if (rest.length >= 3) {
-				// expect token as third param
-				token = String.valueOf(rest[2]);
-				connection.setAttribute("token", token);
-				logger.debug("Parameter 'token' stored on client connection {}", connection);
-			} else if (clientTokenRequired && !username.equals("cluster-restreamer")) {
-				logger.error("Client 'token' is required but was not provided by connection {}.", connection);
-				return false;
-			}
-		}
-		return true;
-	}
-
-	/**
-	 * Special method to help validate cluster restreamer using the cluster password
-	 *
-	 * @param password
-	 *            The provided password to validate
-	 * @return Boolean true if validation is successful, otherwise false
-	 */
-	private boolean validateClusterReStreamer(String password) {
-		// check that password match with cluster password
-		File file = new File(System.getProperty("red5.config_root") + "/cluster.xml");
-		DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-		try {
-			DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
-			Document document = documentBuilder.parse(file);
-
-			Element pageElement = (Element) document.getElementsByTagName("beans").item(0);
-			NodeList result = pageElement.getElementsByTagName("property");
-			logger.info("length: " + result.getLength());
-
-			NamedNodeMap s = result.item(1).getAttributes();
-			if (s.item(1).getNodeValue().equals(password)) {
-				return true;
-			} else {
-				logger.error("wrong password supplied for cluster");
-			}
-		} catch (Exception e) {
-			logger.error("It was not possible to validate the cluster password", e);
-		}
-		return false;
-	}
-
-	/**
-	 * Authenticates a publisher connection, via remote server
-	 *
-	 * @param conn
-	 *            The IConnection object representing the connection
-	 * @param scope
-	 *            The scope where client is attempting to publishing
-	 * @param stream
-	 *            The stream name that the client is trying to publish
-	 *
-	 * @return Boolean true if validation is successful, otherwise false
-	 */
-	public boolean onPublishAuthenticate(IConnection conn, IScope scope, String stream) {
-		String username = conn.getStringAttribute("username");
-		String password = conn.getStringAttribute("password");
-		String token = (conn.hasAttribute("token")) ? conn.getStringAttribute("token") : "";
-		String type = "publisher";
-		if (password != null && username != null) {
-			if (!this.lazyAuth) {
-				try {
-					JsonObject result = authenticateOverHttp(type, username, password, token, stream);
-					boolean canStream = result.get("result").getAsBoolean();
-					if (canStream) {
-						conn.setAttribute("roletype", type);
-						conn.setAttribute("streamID", stream);
-						if (result.has("url")) {
-							String url = result.get("url").getAsString();
-							conn.setAttribute("signedURL", url);
-						} else {
-							logger.debug("No Signed URL supplied");
-						}
-					}
-					return canStream;
-				} catch (Exception e) {
-					logger.warn("Exception onPublish check", e);
-					return false;
-				}
-			} else {
-				threadPoolExecutor.submit(new LazyAuthentication(conn, type, username, password, token, stream));
-				return true;
-			}
-		}
-		return true;
-	}
-
-	/**
-	 * Authenticates a subscriber connection, via remote server
-	 *
-	 * @param conn
-	 *            The IConnection object representing the connection
-	 * @param scope
-	 *            The scope where client is attempting to subscribe
-	 * @param stream
-	 *            The stream name that the client is trying to subscribe to
-	 *
-	 * @return Boolean true if validation is successful, otherwise false
-	 */
-	public boolean onPlaybackAuthenticate(IConnection conn, IScope scope, String stream) {
-		String username = conn.getStringAttribute("username");
-		String password = conn.getStringAttribute("password");
-		String token = (conn.hasAttribute("token")) ? conn.getStringAttribute("token") : "";
-		String type = "subscriber";
-		if (password != null && username != null) {
-			if (username.equals("cluster-restreamer")) {
-				return validateClusterReStreamer(password);
-			} else if (!this.lazyAuth) {
-				try {
-					JsonObject result = authenticateOverHttp(type, username, password, token, stream);
-					boolean canStream = result.get("result").getAsBoolean();
-					if (canStream) {
-						conn.setAttribute("roletype", type);
-						conn.setAttribute("streamID", stream);
-						if (result.has("url")) {
-							String url = result.get("url").getAsString();
-							conn.setAttribute("signedURL", url);
-						}
-					}
-					return canStream;
-				} catch (Exception e) {
-					logger.warn("Exception onPlayback check", e);
-					return false;
-				}
-			} else {
-				threadPoolExecutor.submit(new LazyAuthentication(conn, type, username, password, token, stream));
-				return true;
-			}
-		}
-		return true;
-	}
-
-	/**
-	 * Authenticates a shared object connection, via remote server
-	 *
-	 * @param conn
-	 *            The IConnection object representing the connection
-	 * @param scope
-	 *            The scope where client is attempting to use shared objects
-	 * @param name
-	 *            The name that the client is trying to use shared objects
-	 *
-	 * @return Boolean true if validation is successful, otherwise false
-	 */
-	public boolean onSharedObjectAuthenticate(IConnection conn, IScope scope, String name) {
-		String username = conn.getStringAttribute("username");
-		String password = conn.getStringAttribute("password");
-		String token = (conn.hasAttribute("token")) ? conn.getStringAttribute("token") : "";
-		String type = "publisher";
-		if (password != null && username != null) {
-			if (!this.lazyAuth) {
-				try {
-					JsonObject result = authenticateOverHttp(type, username, password, token, name);
-					boolean canStream = result.get("result").getAsBoolean();
-					if (canStream) {
-						conn.setAttribute("roletype", type);
-						// XXX may want to add SO name or use stream name and so name?
-						conn.setAttribute("streamID", name);
-						if (result.has("url")) {
-							String url = result.get("url").getAsString();
-							conn.setAttribute("signedURL", url);
-						} else {
-							logger.debug("No Signed URL supplied");
-						}
-					}
-					return canStream;
-				} catch (Exception e) {
-					logger.warn("Exception onSharedObject check", e);
-					return false;
-				}
-			} else {
-				threadPoolExecutor.submit(new LazyAuthentication(conn, type, username, password, token, name));
-				return true;
-			}
-		}
-		return true;
-	}
-
-	/**
-	 * Method to authentication/validate client via remote server over http/https
-	 *
-	 * @param type
-	 *            The client type to validate - `publisher or subscriber`
-	 * @param username
-	 *            The `username` parameter provided by the client
-	 * @param password
-	 *            The `password` parameter provided by the client
-	 * @param token
-	 *            The `token` parameter provided by the client
-	 * @param name
-	 *            The `stream name` or `object name` for which validation is
-	 *            required
-	 *
-	 * @return JsonObject JSON payload response from the remote server
-	 */
-	public JsonObject authenticateOverHttp(String type, String username, String password, String token, String name) {
-		JsonObject result = new JsonObject();
-		// default to failed
-		result.add("result", new JsonPrimitive(false));
-		CloseableHttpClient client = null;
-		try {
-			AuthData data = new AuthData();
-			data.setType(type);
-			data.setUsername(username);
-			data.setPassword(password);
-			data.setToken(token);
-			data.setStreamID(name);
-
-			String json = gson.toJson(data);
-
-			client = HttpClients.createDefault();
-
-			HttpPost httpPost = new HttpPost(protocol + host + ":" + port + validateEndPoint);
-
-			StringEntity entity = new StringEntity(json);
-			httpPost.setEntity(entity);
-			httpPost.setHeader("Accept", "application/json");
-			httpPost.setHeader("Content-type", "application/json");
-
-			RequestConfig.Builder requestConfig = RequestConfig.custom();
-			requestConfig.setConnectTimeout(TIMEOUT);
-			requestConfig.setConnectionRequestTimeout(TIMEOUT);
-			requestConfig.setSocketTimeout(TIMEOUT);
-
-			httpPost.setConfig(requestConfig.build());
-
-			CloseableHttpResponse response = client.execute(httpPost);
-			int code = response.getStatusLine().getStatusCode();
-			logger.info("response code: {}", code);
-			if (code == 200) {
-				String responseBody = EntityUtils.toString(response.getEntity());
-				logger.info("responseBody = {}", responseBody);
-				JsonParser parser = new JsonParser();
-				JsonElement obj = parser.parse(responseBody);
-				result = obj.getAsJsonObject();
-			}
-		} catch (Exception e) {
-			logger.warn("Exception attempting authentication", e);
-		} finally {
-			if (client != null) {
-				try {
-					client.close();
-				} catch (IOException e) {
-					logger.warn("Exception in client close", e);
-				}
-			}
-		}
-		return result;
-	}
-
-	/**
-	 * Method to invalidate client via remote server over http/https
-	 *
-	 * @param username
-	 *            The `username` parameter provided by the client
-	 * @param password
-	 *            The `password` parameter provided by the client
-	 * @param token
-	 *            The `token` parameter provided by the client
-	 * @param stream
-	 *            The `stream name` for which validation is required
-	 *
-	 * @return JsonObject JSON payload response from the remote server
-	 */
-	public JsonObject invalidateCredentialsOverHttp(String username, String password, String token, String stream) {
-		JsonObject result = null;
-		CloseableHttpClient client = null;
-		try {
-			AuthData data = new AuthData();
-			data.setUsername(username);
-			data.setPassword(password);
-			data.setToken(token);
-			data.setStreamID(stream);
-
-			String json = gson.toJson(data);
-
-			client = HttpClients.createDefault();
-
-			HttpPost httpPost = new HttpPost(protocol + host + ":" + port + invalidateEndPoint);
-			StringEntity entity = new StringEntity(json);
-			httpPost.setEntity(entity);
-			httpPost.setHeader("Accept", "application/json");
-			httpPost.setHeader("Content-type", "application/json");
-			CloseableHttpResponse response = client.execute(httpPost);
-			if (response.getStatusLine().getStatusCode() == 200) {
-				String responseBody = EntityUtils.toString(response.getEntity());
-				logger.info("responseBody = {}", responseBody);
-				JsonParser parser = new JsonParser();
-				JsonElement obj = parser.parse(responseBody);
-				result = obj.getAsJsonObject();
-			}
-		} catch (Exception e) {
-			logger.warn("Exception invalidating credentials", e);
-		} finally {
-			if (client != null) {
-				try {
-					client.close();
-				} catch (IOException e) {
-					logger.warn("Exception in client close", e);
-				}
-			}
-		}
-		return result;
-	}
-
-	/**
-	 * Async task class, used for `lazy` validation/invalidation
-	 *
-	 * @author Rajdeep Rath
-	 *
-	 */
-	class LazyAuthentication implements Runnable {
-
-		String type, username, password, token, stream;
-
-		IConnection conn;
-
-		public LazyAuthentication(IConnection conn, String type, String username, String password, String token,
-				String name) {
-			this.conn = conn;
-			this.type = type;
-			this.username = username;
-			this.password = password;
-			this.token = token;
-			this.stream = name;
-		}
-
-		@Override
-		public void run() {
-			boolean canStream = false;
-			try {
-				JsonObject result = authenticateOverHttp(type, username, password, token, stream);
-				canStream = result.get("result").getAsBoolean();
-				if (!canStream && conn.isConnected()) {
-					logger.warn("Closing connected client due to authentication failure");
-					conn.close();
-				}
-			} catch (Exception e) {
-				canStream = false;
-				logger.warn("Exception attempting authentication", e);
-			}
-		}
-	}
-
-	public boolean isLazyAuth() {
-		return lazyAuth;
-	}
-
-	public void setLazyAuth(boolean lazyAuth) {
-		this.lazyAuth = lazyAuth;
-	}
-
-	public MultiThreadedApplicationAdapter getAdapter() {
-		return adapter;
-	}
-
-	public void setAdapter(MultiThreadedApplicationAdapter adapter) {
-		this.adapter = adapter;
-	}
-
-	public IContext getContext() {
-		return context;
-	}
-
-	public void setContext(IContext context) {
-		this.context = context;
-	}
-
-	@Override
-	public void appDisconnect(IConnection conn) {
-		if (conn.hasAttribute("roletype") && conn.getStringAttribute("roletype").equals("publisher")
-				&& conn.hasAttribute("streamID") && conn.hasAttribute("username") && conn.hasAttribute("password")) {
-			String username = conn.getStringAttribute("username");
-			String password = conn.getStringAttribute("password");
-			String streamID = conn.getStringAttribute("streamID");
-			String token = conn.getStringAttribute("token");
-			if (invalidateEndPoint != null && invalidateEndPoint.length() > 3) {
-				invalidateCredentialsOverHttp(username, password, token, streamID);
-			}
-		}
-	}
-
-	@Override
-	public boolean appStart(IScope app) {
-		return true;
-	}
-
-	@Override
-	public boolean appConnect(IConnection conn, Object[] params) {
-		return true;
-	}
-
-	@Override
-	public boolean appJoin(IClient client, IScope app) {
-		return true;
-	}
-
-	@Override
-	public void appLeave(IClient client, IScope app) {
-	}
-
-	@Override
-	public void appStop(IScope app) {
-	}
-
-	@Override
-	public boolean roomStart(IScope room) {
-		return true;
-	}
-
-	@Override
-	public boolean roomConnect(IConnection conn, Object[] params) {
-		return true;
-	}
-
-	@Override
-	public boolean roomJoin(IClient client, IScope room) {
-		return true;
-	}
-
-	@Override
-	public void roomDisconnect(IConnection conn) {
-	}
-
-	@Override
-	public void roomLeave(IClient client, IScope room) {
-	}
-
-	@Override
-	public void roomStop(IScope room) {
-	}
-
-	public String getValidateCredentialsEndPoint() {
-		return validateEndPoint;
-	}
-
-	public void setValidateCredentialsEndPoint(String validateEndPoint) {
-		this.validateEndPoint = validateEndPoint;
-	}
-
-	public String getinvalidateCredentialsEndPoint() {
-		return invalidateEndPoint;
-	}
-
-	public void setinvalidateCredentialsEndPoint(String invalidateEndPoint) {
-		this.invalidateEndPoint = invalidateEndPoint;
-	}
-
-	public boolean getClientTokenRequired() {
-		return clientTokenRequired;
-	}
-
-	public void setClientTokenRequired(boolean tokenRequired) {
-		this.clientTokenRequired = tokenRequired;
-	}
+    private static Logger logger = LoggerFactory.getLogger(RoundTripAuthValidator.class);
+
+    /**
+     * Property to store validation endpoint path (relative to root)
+     */
+    private String validateEndPoint;
+
+    /**
+     * Property to store invalidation endpoint path (relative to root)
+     */
+    private String invalidateEndPoint;
+
+    /**
+     * Optional authentication mode. If set to true, clients are allowed access
+     * initially and validated in a parallel thread instead of blocking access for
+     * authentication
+     */
+    private boolean lazyAuth;
+
+    /**
+     * Property to indicate whether `token` parameter is optional or mandatory
+     */
+    private boolean clientTokenRequired;
+
+    /**
+     * Red5 Context object. This is helpful in resolving resources on the file
+     * system
+     */
+    private IContext context;
+
+    /**
+     * Red5 application object. This gives access to the parent application
+     */
+    private MultiThreadedApplicationAdapter adapter;
+
+    /**
+     * Gson object for serializing/deserializing JSON
+     */
+    private final Gson gson = new Gson();
+
+    /**
+     * Defines the HTTP client timeout
+     */
+    private static final int TIMEOUT = 9000;
+
+    private ExecutorService threadPoolExecutor;
+
+    /**
+     * Stores the remote server access protocol (HTTP/HTTPS)
+     */
+    private String protocol;
+
+    /**
+     * Stores remote server host name
+     */
+    private String host;
+
+    /**
+     * Stores remote access port (80 or 443 or custom)
+     */
+    private String port;
+
+    public void setProtocol(String p) {
+        protocol = p;
+    }
+
+    public String getProtocol() {
+        return protocol;
+    }
+
+    public void setHost(String h) {
+        host = h;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public void setPort(String p) {
+        port = p;
+    }
+
+    public String getPort() {
+        return port;
+    }
+
+    @Override
+    public void initialize() {
+        logger.info("initialization part");
+        if (lazyAuth) {
+            threadPoolExecutor = Executors.newCachedThreadPool();
+        }
+        if (adapter != null) {
+            adapter.registerStreamPublishSecurity(new PublishSecurity(this));
+            adapter.registerStreamPlaybackSecurity(new PlaybackSecurity(this));
+            adapter.registerSharedObjectSecurity(new SharedObjectSecurity(this));
+            adapter.addListener(this);
+        } else {
+            logger.error("Something is wrong, no access to application adapter");
+        }
+        logger.debug("adapter = {}\ncontext = {}", adapter, context);
+        logger.debug("auth host = {}\nauth port = {}\nauth protocol = {}", host, port, protocol);
+        logger.debug("authEndPoint = {}\ninvalidateEndPoint = {}\nlazyAuth = {}", validateEndPoint, invalidateEndPoint, lazyAuth);
+    }
+
+    @Override
+    public boolean onConnectAuthenticate(String username, String password, Object[] rest) {
+        logger.trace("onConnectAuthenticate - username: {} password: {} rest: {}", username, password, rest[0]);
+        // get the connection
+        IConnection connection = Red5.getConnectionLocal();
+        // check for blank and/or "undefined"
+        if (StringUtils.isBlank(username) || StringUtils.isBlank(password) || "undefined".equals(username)
+                || "undefined".equals(password)) {
+            logger.error("One or more missing parameter(s). Parameter 'username' and/or 'password' not provided");
+            return false;
+        }
+        // just store parameters as we will be using these later
+        connection.setAttribute("username", username);
+        connection.setAttribute("password", password);
+        logger.debug("Parameters 'username' and 'password' stored on client connection! {}", connection);
+        String token = null;
+        if (rest.length == 1) {
+            if (rest[0] instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> map = (Map<String, Object>) rest[0];
+                // collect token if exists
+                if (map.containsKey(TOKEN)) {
+                    token = String.valueOf(map.get(TOKEN));
+                    connection.setAttribute("token", token);
+                    logger.debug("Parameter 'token' stored on client connection {}", connection);
+                } else if (clientTokenRequired && !username.equals("cluster-restreamer")) {
+                    logger.error("Client 'token' is required but was not provided by connection {}.", connection);
+                    return false;
+                }
+            } else {
+                logger.error("Unexpected parameter!. Expected Map got {}", rest[0].getClass().getName());
+                return false;
+            }
+        } else if (rest.length > 1) {
+            logger.info("rtmp");
+            // probably rtmp connection params
+            if (rest.length >= 3) {
+                // expect token as third param
+                token = String.valueOf(rest[2]);
+                connection.setAttribute("token", token);
+                logger.debug("Parameter 'token' stored on client connection {}", connection);
+            } else if (clientTokenRequired && !username.equals("cluster-restreamer")) {
+                logger.error("Client 'token' is required but was not provided by connection {}.", connection);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Special method to help validate cluster restreamer using the cluster password
+     *
+     * @param password
+     *            The provided password to validate
+     * @return Boolean true if validation is successful, otherwise false
+     */
+    private boolean validateClusterReStreamer(String password) {
+        // check that password match with cluster password
+        File file = new File(System.getProperty("red5.config_root") + "/cluster.xml");
+        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        try {
+            DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+            Document document = documentBuilder.parse(file);
+
+            Element pageElement = (Element) document.getElementsByTagName("beans").item(0);
+            NodeList result = pageElement.getElementsByTagName("property");
+            logger.info("length: " + result.getLength());
+
+            NamedNodeMap s = result.item(1).getAttributes();
+            if (s.item(1).getNodeValue().equals(password)) {
+                return true;
+            } else {
+                logger.error("wrong password supplied for cluster");
+            }
+        } catch (Exception e) {
+            logger.error("It was not possible to validate the cluster password", e);
+        }
+        return false;
+    }
+
+    /**
+     * Authenticates a publisher connection, via remote server
+     *
+     * @param conn
+     *            The IConnection object representing the connection
+     * @param scope
+     *            The scope where client is attempting to publishing
+     * @param stream
+     *            The stream name that the client is trying to publish
+     *
+     * @return Boolean true if validation is successful, otherwise false
+     */
+    public boolean onPublishAuthenticate(IConnection conn, IScope scope, String stream) {
+        String username = conn.getStringAttribute("username");
+        String password = conn.getStringAttribute("password");
+        String token = (conn.hasAttribute("token")) ? conn.getStringAttribute("token") : "";
+        String type = "publisher";
+        if (password != null && username != null) {
+            if (!this.lazyAuth) {
+                try {
+                    JsonObject result = authenticateOverHttp(type, username, password, token, stream);
+                    boolean canStream = result.get("result").getAsBoolean();
+                    if (canStream) {
+                        conn.setAttribute("roletype", type);
+                        conn.setAttribute("streamID", stream);
+                        if (result.has("url")) {
+                            String url = result.get("url").getAsString();
+                            conn.setAttribute("signedURL", url);
+                        } else {
+                            logger.debug("No Signed URL supplied");
+                        }
+                    }
+                    return canStream;
+                } catch (Exception e) {
+                    logger.warn("Exception onPublish check", e);
+                    return false;
+                }
+            } else {
+                threadPoolExecutor.submit(new LazyAuthentication(conn, type, username, password, token, stream));
+                return true;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Authenticates a subscriber connection, via remote server
+     *
+     * @param conn
+     *            The IConnection object representing the connection
+     * @param scope
+     *            The scope where client is attempting to subscribe
+     * @param stream
+     *            The stream name that the client is trying to subscribe to
+     *
+     * @return Boolean true if validation is successful, otherwise false
+     */
+    public boolean onPlaybackAuthenticate(IConnection conn, IScope scope, String stream) {
+        String username = conn.getStringAttribute("username");
+        String password = conn.getStringAttribute("password");
+        String token = (conn.hasAttribute("token")) ? conn.getStringAttribute("token") : "";
+        String type = "subscriber";
+        if (password != null && username != null) {
+            if (username.equals("cluster-restreamer")) {
+                return validateClusterReStreamer(password);
+            } else if (!this.lazyAuth) {
+                try {
+                    JsonObject result = authenticateOverHttp(type, username, password, token, stream);
+                    boolean canStream = result.get("result").getAsBoolean();
+                    if (canStream) {
+                        conn.setAttribute("roletype", type);
+                        conn.setAttribute("streamID", stream);
+                        if (result.has("url")) {
+                            String url = result.get("url").getAsString();
+                            conn.setAttribute("signedURL", url);
+                        }
+                    }
+                    return canStream;
+                } catch (Exception e) {
+                    logger.warn("Exception onPlayback check", e);
+                    return false;
+                }
+            } else {
+                threadPoolExecutor.submit(new LazyAuthentication(conn, type, username, password, token, stream));
+                return true;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Authenticates a shared object connection, via remote server
+     *
+     * @param conn
+     *            The IConnection object representing the connection
+     * @param scope
+     *            The scope where client is attempting to use shared objects
+     * @param name
+     *            The name that the client is trying to use shared objects
+     *
+     * @return Boolean true if validation is successful, otherwise false
+     */
+    public boolean onSharedObjectAuthenticate(IConnection conn, IScope scope, String name) {
+        String username = conn.getStringAttribute("username");
+        String password = conn.getStringAttribute("password");
+        String token = (conn.hasAttribute("token")) ? conn.getStringAttribute("token") : "";
+        String type = "publisher";
+        if (password != null && username != null) {
+            if (!this.lazyAuth) {
+                try {
+                    JsonObject result = authenticateOverHttp(type, username, password, token, name);
+                    boolean canStream = result.get("result").getAsBoolean();
+                    if (canStream) {
+                        conn.setAttribute("roletype", type);
+                        // XXX may want to add SO name or use stream name and so name?
+                        conn.setAttribute("streamID", name);
+                        if (result.has("url")) {
+                            String url = result.get("url").getAsString();
+                            conn.setAttribute("signedURL", url);
+                        } else {
+                            logger.debug("No Signed URL supplied");
+                        }
+                    }
+                    return canStream;
+                } catch (Exception e) {
+                    logger.warn("Exception onSharedObject check", e);
+                    return false;
+                }
+            } else {
+                threadPoolExecutor.submit(new LazyAuthentication(conn, type, username, password, token, name));
+                return true;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Method to authentication/validate client via remote server over http/https
+     *
+     * @param type
+     *            The client type to validate - `publisher or subscriber`
+     * @param username
+     *            The `username` parameter provided by the client
+     * @param password
+     *            The `password` parameter provided by the client
+     * @param token
+     *            The `token` parameter provided by the client
+     * @param name
+     *            The `stream name` or `object name` for which validation is
+     *            required
+     *
+     * @return JsonObject JSON payload response from the remote server
+     */
+    public JsonObject authenticateOverHttp(String type, String username, String password, String token, String name) {
+        JsonObject result = new JsonObject();
+        // default to failed
+        result.add("result", new JsonPrimitive(false));
+        CloseableHttpClient client = null;
+        try {
+            AuthData data = new AuthData();
+            data.setType(type);
+            data.setUsername(username);
+            data.setPassword(password);
+            data.setToken(token);
+            data.setStreamID(name);
+
+            String json = gson.toJson(data);
+
+            client = HttpClients.createDefault();
+
+            HttpPost httpPost = new HttpPost(protocol + host + ":" + port + validateEndPoint);
+
+            StringEntity entity = new StringEntity(json);
+            httpPost.setEntity(entity);
+            httpPost.setHeader("Accept", "application/json");
+            httpPost.setHeader("Content-type", "application/json");
+
+            RequestConfig.Builder requestConfig = RequestConfig.custom();
+            requestConfig.setConnectTimeout(TIMEOUT);
+            requestConfig.setConnectionRequestTimeout(TIMEOUT);
+            requestConfig.setSocketTimeout(TIMEOUT);
+
+            httpPost.setConfig(requestConfig.build());
+
+            CloseableHttpResponse response = client.execute(httpPost);
+            int code = response.getStatusLine().getStatusCode();
+            logger.info("response code: {}", code);
+            if (code == 200) {
+                String responseBody = EntityUtils.toString(response.getEntity());
+                logger.info("responseBody = {}", responseBody);
+                JsonParser parser = new JsonParser();
+                JsonElement obj = parser.parse(responseBody);
+                result = obj.getAsJsonObject();
+            }
+        } catch (Exception e) {
+            logger.warn("Exception attempting authentication", e);
+        } finally {
+            if (client != null) {
+                try {
+                    client.close();
+                } catch (IOException e) {
+                    logger.warn("Exception in client close", e);
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Method to invalidate client via remote server over http/https
+     *
+     * @param username
+     *            The `username` parameter provided by the client
+     * @param password
+     *            The `password` parameter provided by the client
+     * @param token
+     *            The `token` parameter provided by the client
+     * @param stream
+     *            The `stream name` for which validation is required
+     *
+     * @return JsonObject JSON payload response from the remote server
+     */
+    public JsonObject invalidateCredentialsOverHttp(String username, String password, String token, String stream) {
+        JsonObject result = null;
+        CloseableHttpClient client = null;
+        try {
+            AuthData data = new AuthData();
+            data.setUsername(username);
+            data.setPassword(password);
+            data.setToken(token);
+            data.setStreamID(stream);
+
+            String json = gson.toJson(data);
+
+            client = HttpClients.createDefault();
+
+            HttpPost httpPost = new HttpPost(protocol + host + ":" + port + invalidateEndPoint);
+            StringEntity entity = new StringEntity(json);
+            httpPost.setEntity(entity);
+            httpPost.setHeader("Accept", "application/json");
+            httpPost.setHeader("Content-type", "application/json");
+            CloseableHttpResponse response = client.execute(httpPost);
+            if (response.getStatusLine().getStatusCode() == 200) {
+                String responseBody = EntityUtils.toString(response.getEntity());
+                logger.info("responseBody = {}", responseBody);
+                JsonParser parser = new JsonParser();
+                JsonElement obj = parser.parse(responseBody);
+                result = obj.getAsJsonObject();
+            }
+        } catch (Exception e) {
+            logger.warn("Exception invalidating credentials", e);
+        } finally {
+            if (client != null) {
+                try {
+                    client.close();
+                } catch (IOException e) {
+                    logger.warn("Exception in client close", e);
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Async task class, used for `lazy` validation/invalidation
+     *
+     * @author Rajdeep Rath
+     *
+     */
+    class LazyAuthentication implements Runnable {
+
+        String type, username, password, token, stream;
+
+        IConnection conn;
+
+        public LazyAuthentication(IConnection conn, String type, String username, String password, String token, String name) {
+            this.conn = conn;
+            this.type = type;
+            this.username = username;
+            this.password = password;
+            this.token = token;
+            this.stream = name;
+        }
+
+        @Override
+        public void run() {
+            boolean canStream = false;
+            try {
+                JsonObject result = authenticateOverHttp(type, username, password, token, stream);
+                canStream = result.get("result").getAsBoolean();
+                if (!canStream && conn.isConnected()) {
+                    logger.warn("Closing connected client due to authentication failure");
+                    conn.close();
+                }
+            } catch (Exception e) {
+                canStream = false;
+                logger.warn("Exception attempting authentication", e);
+            }
+        }
+    }
+
+    public boolean isLazyAuth() {
+        return lazyAuth;
+    }
+
+    public void setLazyAuth(boolean lazyAuth) {
+        this.lazyAuth = lazyAuth;
+    }
+
+    public MultiThreadedApplicationAdapter getAdapter() {
+        return adapter;
+    }
+
+    public void setAdapter(MultiThreadedApplicationAdapter adapter) {
+        this.adapter = adapter;
+    }
+
+    public IContext getContext() {
+        return context;
+    }
+
+    public void setContext(IContext context) {
+        this.context = context;
+    }
+
+    @Override
+    public void appDisconnect(IConnection conn) {
+        if (conn.hasAttribute("roletype") && conn.getStringAttribute("roletype").equals("publisher") && conn.hasAttribute("streamID")
+                && conn.hasAttribute("username") && conn.hasAttribute("password")) {
+            String username = conn.getStringAttribute("username");
+            String password = conn.getStringAttribute("password");
+            String streamID = conn.getStringAttribute("streamID");
+            String token = conn.getStringAttribute("token");
+            if (invalidateEndPoint != null && invalidateEndPoint.length() > 3) {
+                invalidateCredentialsOverHttp(username, password, token, streamID);
+            }
+        }
+    }
+
+    @Override
+    public boolean appStart(IScope app) {
+        return true;
+    }
+
+    @Override
+    public boolean appConnect(IConnection conn, Object[] params) {
+        return true;
+    }
+
+    @Override
+    public boolean appJoin(IClient client, IScope app) {
+        return true;
+    }
+
+    @Override
+    public void appLeave(IClient client, IScope app) {
+    }
+
+    @Override
+    public void appStop(IScope app) {
+    }
+
+    @Override
+    public boolean roomStart(IScope room) {
+        return true;
+    }
+
+    @Override
+    public boolean roomConnect(IConnection conn, Object[] params) {
+        return true;
+    }
+
+    @Override
+    public boolean roomJoin(IClient client, IScope room) {
+        return true;
+    }
+
+    @Override
+    public void roomDisconnect(IConnection conn) {
+    }
+
+    @Override
+    public void roomLeave(IClient client, IScope room) {
+    }
+
+    @Override
+    public void roomStop(IScope room) {
+    }
+
+    public String getValidateCredentialsEndPoint() {
+        return validateEndPoint;
+    }
+
+    public void setValidateCredentialsEndPoint(String validateEndPoint) {
+        this.validateEndPoint = validateEndPoint;
+    }
+
+    public String getinvalidateCredentialsEndPoint() {
+        return invalidateEndPoint;
+    }
+
+    public void setinvalidateCredentialsEndPoint(String invalidateEndPoint) {
+        this.invalidateEndPoint = invalidateEndPoint;
+    }
+
+    public boolean getClientTokenRequired() {
+        return clientTokenRequired;
+    }
+
+    public void setClientTokenRequired(boolean tokenRequired) {
+        this.clientTokenRequired = tokenRequired;
+    }
 
 }
