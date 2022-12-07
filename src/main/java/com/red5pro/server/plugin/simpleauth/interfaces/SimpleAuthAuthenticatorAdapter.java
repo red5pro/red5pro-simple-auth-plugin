@@ -33,66 +33,66 @@ import com.red5pro.server.plugin.simpleauth.AuthenticatorType;
 
 /**
  * Abstract adapter class for ISimpleAuthAuthenticator.
- * 
+ *
  * @author Paul Gregoire
  *
  */
 public abstract class SimpleAuthAuthenticatorAdapter implements ISimpleAuthAuthenticator {
 
-	protected Logger logger = LoggerFactory.getLogger(this.getClass());
+    protected Logger logger = LoggerFactory.getLogger(this.getClass());
 
-	/**
-	 * The IAuthenticationValidator object for this authenticator
-	 */
-	protected IAuthenticationValidator source;
+    /**
+     * The IAuthenticationValidator object for this authenticator
+     */
+    protected IAuthenticationValidator source;
 
-	/**
-	 * Flag to enable/disable connection params check on query params
-	 */
-	protected boolean allowQueryParams;
+    /**
+     * Flag to enable/disable connection params check on query params
+     */
+    protected boolean allowQueryParams;
 
-	/**
-	 * Authenticator entry point
-	 */
-	public void initialize() {
-		// initialization tasks
-		logger.debug("{} initialized", this.getClass().getName());
-	}
+    /**
+     * Authenticator entry point
+     */
+    public void initialize() {
+        // initialization tasks
+        logger.debug("{} initialized", this.getClass().getName());
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public void setDataSource(IAuthenticationValidator source) {
-		this.source = source;
-	}
+    /** {@inheritDoc} */
+    @Override
+    public void setDataSource(IAuthenticationValidator source) {
+        this.source = source;
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public IAuthenticationValidator getDataSource() {
-		return source;
-	}
+    /** {@inheritDoc} */
+    @Override
+    public IAuthenticationValidator getDataSource() {
+        return source;
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public boolean authenticate(IConnection connection, Object[] params) {
-		return false;
-	}
+    /** {@inheritDoc} */
+    @Override
+    public boolean authenticate(IConnection connection, Object[] params) {
+        return false;
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public boolean authenticate(AuthenticatorType type, Object connection, Object[] params) {
-		return false;
-	}
+    /** {@inheritDoc} */
+    @Override
+    public boolean authenticate(AuthenticatorType type, Object connection, Object[] params) {
+        return false;
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public void setAllowQueryParams(boolean allowQueryParams) {
-		this.allowQueryParams = allowQueryParams;
-	}
+    /** {@inheritDoc} */
+    @Override
+    public void setAllowQueryParams(boolean allowQueryParams) {
+        this.allowQueryParams = allowQueryParams;
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public boolean isAllowQueryParams() {
-		return allowQueryParams;
-	}
+    /** {@inheritDoc} */
+    @Override
+    public boolean isAllowQueryParams() {
+        return allowQueryParams;
+    }
 
 }
