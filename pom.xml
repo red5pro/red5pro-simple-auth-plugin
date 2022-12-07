@@ -42,7 +42,7 @@
 		<mina.version>2.0.23</mina.version>
 		<spring.version>5.3.23</spring.version>
 		<commons-lang3.version>3.11</commons-lang3.version>
-		<httpcomponents.version>[4.5.13,)</httpcomponents.version>
+		<httpcomponents.version>4.5.13</httpcomponents.version>
         	<gson.version>2.9.0</gson.version>
 		<javax.servlet.version>3.1.0</javax.servlet.version>
 		<junit.version>[4.13.1,)</junit.version>
@@ -361,10 +361,10 @@
 					<groupId>com.zaxxer</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
-                    <exclusion>
-                        <groupId>org.springframework</groupId>
-                        <artifactId>*</artifactId>
-                    </exclusion>
+                <exclusion>
+                    <groupId>org.springframework</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
 			</exclusions>
 		</dependency>
 		<dependency>
