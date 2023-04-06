@@ -135,8 +135,7 @@ public class Red5ProFileAuthenticationValidator implements IAuthenticationValida
 
             if (context != null)
                 propertiesFile = context.getApplicationContext().getResource(dataSource).getFile();
-            else
-                propertiesFile = new File(dataSource);
+            else propertiesFile = new File(dataSource);
 
             if (!propertiesFile.exists())
                 throw new IOException("Datasource not found");

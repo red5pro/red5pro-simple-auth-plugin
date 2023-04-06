@@ -124,7 +124,8 @@ public class AuthServlet implements Filter {
         log.debug("Request URI: {}", requestedURI); // ex: /live/stream1.m3u8
         // check the query string for parameters as well, this may be why vlc and ffplay
         // arent working
-        if (StringUtils.isNotBlank(token) || (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password) && !"undefined".equals(username) && !"undefined".equals(password))) {
+        if (StringUtils.isNotBlank(token) || (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)
+                && !"undefined".equals(username) && !"undefined".equals(password))) {
             Map<String, String[]> qsMap = httpRequest.getParameterMap();
             log.debug("QS map: {}", qsMap);
             for (Entry<String, String[]> entry : qsMap.entrySet()) {
@@ -144,10 +145,12 @@ public class AuthServlet implements Filter {
             }
         }
         // process token and / or u:p combo, check for blank and/or "undefined"
-        if (StringUtils.isNotBlank(token) || (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password) && !"undefined".equals(username) && !"undefined".equals(password))) {
+        if (StringUtils.isNotBlank(token) || (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)
+                && !"undefined".equals(username) && !"undefined".equals(password))) {
             if (appCtx == null) {
                 // XXX should we be looking for apps? validating that they exist?
-                appCtx = (ApplicationContext) request.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+                appCtx = (ApplicationContext) request.getServletContext()
+                        .getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
                 // if theres no context then this is not running in a red5 app
                 if (appCtx == null) {
                     session.invalidate();
@@ -184,7 +187,8 @@ public class AuthServlet implements Filter {
                 if (validator instanceof RoundTripAuthValidator) {
                     log.debug("Using RoundTripAuthValidator");
                     // perform the validation via round-trip
-                    JsonObject result = ((RoundTripAuthValidator) validator).authenticateOverHttp(type, username, password, token, streamName);
+                    JsonObject result = ((RoundTripAuthValidator) validator).authenticateOverHttp(type, username, password, token,
+                            streamName);
                     if (result != null && result.get("result").getAsBoolean()) {
                         session.setAttribute("roletype", type);
                         session.setAttribute("streamID", streamName);

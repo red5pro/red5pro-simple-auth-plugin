@@ -202,7 +202,8 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
         // get the connection
         IConnection connection = Red5.getConnectionLocal();
         // check for blank and/or "undefined"
-        if (StringUtils.isBlank(username) || StringUtils.isBlank(password) || "undefined".equals(username) || "undefined".equals(password)) {
+        if (StringUtils.isBlank(username) || StringUtils.isBlank(password) || "undefined".equals(username)
+                || "undefined".equals(password)) {
             logger.error("One or more missing parameter(s). Parameter 'username' and/or 'password' not provided");
             return false;
         }
@@ -602,7 +603,8 @@ public class RoundTripAuthValidator implements IAuthenticationValidator, IApplic
 
     @Override
     public void appDisconnect(IConnection conn) {
-        if (conn.hasAttribute("roletype") && conn.getStringAttribute("roletype").equals("publisher") && conn.hasAttribute("streamID") && conn.hasAttribute("username") && conn.hasAttribute("password")) {
+        if (conn.hasAttribute("roletype") && conn.getStringAttribute("roletype").equals("publisher") && conn.hasAttribute("streamID")
+                && conn.hasAttribute("username") && conn.hasAttribute("password")) {
             String username = conn.getStringAttribute("username");
             String password = conn.getStringAttribute("password");
             String streamID = conn.getStringAttribute("streamID");
