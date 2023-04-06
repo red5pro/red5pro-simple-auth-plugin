@@ -13,7 +13,7 @@ Configure the application `red5-web.xml` to support `http` authentication via th
     <property name="allowedRtmpAgents" value="*" />
     <property name="validator" ref="roundTripValidator" />
 </bean>
-``` 
+```
 
 Configure the application `web.xml` to include the `AuthServlet`
 
@@ -85,4 +85,3 @@ When the branches are aligned, this easily updated section should be in the `liv
 Quick test / verification
 
 Open VLC network link: `http://localhost:5080/live/stream1.m3u8?username=testuser&password=testpass` __replacing the variables/parameters as needed__.
-

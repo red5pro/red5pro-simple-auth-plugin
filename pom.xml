@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 	<groupId>com.red5pro</groupId>
 	<artifactId>red5pro-simple-auth</artifactId>
-	<version>10.8.0</version>
+	<version>10.9.5</version>
 	<packaging>jar</packaging>
 	<name>red5pro-simple-auth-plugin</name>
 	<url>https://github.com/red5pro/red5pro-simple-auth-plugin</url>
@@ -22,11 +22,11 @@
 	<developers>
 		<developer>
 			<id>Rajdeep Rath</id>
-			<email>rajdeep@infrared5.com</email>
+			<email>rajdeep@red5pro.com</email>
 		</developer>
 		<developer>
 			<id>Paul Gregoire</id>
-			<email>paul@infrared5.com</email>
+			<email>paul@red5pro.com</email>
 		</developer>
 	</developers>
 	<properties>
@@ -37,13 +37,13 @@
 		<java.release.level>11</java.release.level>
 		<maven.build.timestamp.format>MM.dd.yyyy HH:mm</maven.build.timestamp.format>
 		<timestamp>${maven.build.timestamp}</timestamp>
-        	<red5pro-common.version>10.8.0.1</red5pro-common.version>
-		<red5.version>1.3.11</red5.version>
+		<red5pro-common.version>10.9.0.16</red5pro-common.version>
+		<red5.version>1.3.16</red5.version>
 		<mina.version>2.0.23</mina.version>
-		<spring.version>5.3.23</spring.version>
+		<spring.version>5.3.24</spring.version>
 		<commons-lang3.version>3.11</commons-lang3.version>
 		<httpcomponents.version>[4.5.13,)</httpcomponents.version>
-        	<gson.version>2.9.0</gson.version>
+        <gson.version>2.9.0</gson.version>
 		<javax.servlet.version>3.1.0</javax.servlet.version>
 		<junit.version>[4.13.1,)</junit.version>
 	</properties>

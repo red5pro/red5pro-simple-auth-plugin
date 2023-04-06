@@ -201,6 +201,7 @@ Instantiate your custom validator using spring in `red5-web.xml` and pass it as 
     <property name="validator" ref="authDataValidator" />
 </bean>
 ```
+
 The plugin will now use your custom validator to validate the authentication info.
 
 For developer convenience, a [`custom-validator-development-kit` has been included with this repository](#red5-pro-simpleauth-custom-validator-kit). The kit is primarily a `maven` project with a basic custom validator class setup. you can utilize the template to build your own custom validator, package it as a `jar` and deploy it along side the simple-auth plugin on the server, with your custom validator configuration in yourt targeted webapp.
