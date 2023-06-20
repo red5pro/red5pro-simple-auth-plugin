@@ -244,7 +244,8 @@ public class SimpleAuthPlugin extends Red5Plugin {
             if (!fileDataSource.exists()) {
                 Properties credentials = new Properties();
                 // creates a new credentials file
-                addConfResource(credentials, defaultAuthValidatorDataSource, "SimpleAuth Credentials\n[ Add username and password as key-value pair separated by a space (one per line) ]\nExample: testuser testpass\n");
+                addConfResource(credentials, defaultAuthValidatorDataSource,
+                        "SimpleAuth Credentials\n[ Add username and password as key-value pair separated by a space (one per line) ]\nExample: testuser testpass\n");
                 // once the file is created, get the resource
                 fileDataSource = getConfResource(context, defaultAuthValidatorDataSource);
             }
@@ -293,7 +294,8 @@ public class SimpleAuthPlugin extends Red5Plugin {
         Path uri = Paths.get(String.format("%s/%s", confDir, path));
         OutputStream os = null;
         try {
-            os = Files.newOutputStream(uri, new OpenOption[] { StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING });
+            os = Files.newOutputStream(uri,
+                    new OpenOption[] { StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING });
             log.debug("Creating configuration file {}", uri.toAbsolutePath());
             props.store(os, comments);
         } catch (IOException e) {
@@ -636,7 +638,8 @@ public class SimpleAuthPlugin extends Red5Plugin {
             } else {
                 scopeAuthProvider.setRtmpAcceptsQueryParamsEnabled(defaultConfiguration.isRtmpAllowQueryParamsEnabled());
             }
-            if (simpleAuthCustom.isAllowedRtmpAgentsUpdated() && simpleAuthCustom.getAllowedRtmpAgents() != null && simpleAuthCustom.getAllowedRtmpAgents().length() > 2) {
+            if (simpleAuthCustom.isAllowedRtmpAgentsUpdated() && simpleAuthCustom.getAllowedRtmpAgents() != null
+                    && simpleAuthCustom.getAllowedRtmpAgents().length() > 2) {
                 scopeAuthProvider.setAllowedRtmpAgents(simpleAuthCustom.getAllowedRtmpAgents());
             } else {
                 scopeAuthProvider.setAllowedRtmpAgents(defaultConfiguration.getAllowedRtmpAgents());
@@ -715,7 +718,8 @@ public class SimpleAuthPlugin extends Red5Plugin {
         if (!fileDataSource.exists()) {
             Properties credentials = new Properties();
             // creates a new credentials file
-            addConfResource(credentials, authValidatorDataSource, "SimpleAuth Credentials\n[ Add username and password as key-value pair separated by a space (one per line) ]\nExample: testuser testpass\n");
+            addConfResource(credentials, authValidatorDataSource,
+                    "SimpleAuth Credentials\n[ Add username and password as key-value pair separated by a space (one per line) ]\nExample: testuser testpass\n");
             // once the file is created, get the resource
             fileDataSource = getConfResource(context, authValidatorDataSource);
         }

@@ -38,5 +38,7 @@ gen
 .settings
 .externalToolBuilders
 .recommenders
+.vscode/
+*.code-workspace
 
 

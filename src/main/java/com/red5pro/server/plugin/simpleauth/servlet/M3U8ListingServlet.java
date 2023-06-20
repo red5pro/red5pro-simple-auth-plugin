@@ -132,7 +132,8 @@ public class M3U8ListingServlet extends HttpServlet {
         // 3. Look in Google Storage using cloudstorage plugin
         // 4. Look in DigitalOcean Space using cloudstorage plugin
         // get the application context for the app in which this servlet is running
-        ApplicationContext appCtx = (ApplicationContext) getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+        ApplicationContext appCtx = (ApplicationContext) getServletContext()
+                .getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
         // if theres no context then this is not running in a red5 app
         if (appCtx == null) {
             // return an error
@@ -146,7 +147,8 @@ public class M3U8ListingServlet extends HttpServlet {
             log.debug("Application scope: {}", appScope);
             String scopeName = appScope.getName();
             // look for a custom filename gen class
-            IStreamFilenameGenerator filenameGenerator = (IStreamFilenameGenerator) ScopeUtils.getScopeService(appScope, IStreamFilenameGenerator.class, DefaultStreamFilenameGenerator.class);
+            IStreamFilenameGenerator filenameGenerator = (IStreamFilenameGenerator) ScopeUtils.getScopeService(appScope,
+                    IStreamFilenameGenerator.class, DefaultStreamFilenameGenerator.class);
             // determine if cloud should be accessed by checking the class name for the
             // generator
             String generatorName = filenameGenerator.getClass().getName();
@@ -189,15 +191,18 @@ public class M3U8ListingServlet extends HttpServlet {
                         }
                     }
                 }
-                log.info("Parameters - username: {} password: {} token: {} type: {} streamName: {}", username, password, token, type, streamName);
-                if (StringUtils.isNotBlank(token) || (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password) && !"undefined".equals(username) && !"undefined".equals(password))) {
+                log.info("Parameters - username: {} password: {} token: {} type: {} streamName: {}", username, password, token, type,
+                        streamName);
+                if (StringUtils.isNotBlank(token) || (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)
+                        && !"undefined".equals(username) && !"undefined".equals(password))) {
                     try {
                         // get the validator
                         IAuthenticationValidator validator = authPlugin.getAuthValidator(scopeName);
                         if (validator instanceof RoundTripAuthValidator) {
                             log.debug("Using RoundTripAuthValidator");
                             // perform the validation via round-trip
-                            JsonObject result = ((RoundTripAuthValidator) validator).authenticateOverHttp(type, username, password, token, "*"); // wildcard the stream
+                            JsonObject result = ((RoundTripAuthValidator) validator).authenticateOverHttp(type, username, password, token,
+                                    "*"); // wildcard the stream
                             // successful result passes thru
                             if (result != null && !result.get("result").getAsBoolean()) {
                                 session.invalidate();
@@ -245,7 +250,10 @@ public class M3U8ListingServlet extends HttpServlet {
             String takeFromCloud = req.getParameter("useCloud");
             useCloud = takeFromCloud != null && takeFromCloud.equals("true");
             // use the string to prevent dependency on the cloudstorage plugin
-            if (useCloud && !"com.red5pro.media.storage.s3.S3FilenameGenerator".equals(generatorName) && !"com.red5pro.media.storage.gstorage.GStorageFilenameGenerator".equals(generatorName) && !"com.red5pro.media.storage.digitalocean.DOFilenameGenerator".equals(generatorName) && !"com.red5pro.media.storage.azure.AzureFilenameGenerator".equals(generatorName)) {
+            if (useCloud && !"com.red5pro.media.storage.s3.S3FilenameGenerator".equals(generatorName)
+                    && !"com.red5pro.media.storage.gstorage.GStorageFilenameGenerator".equals(generatorName)
+                    && !"com.red5pro.media.storage.digitalocean.DOFilenameGenerator".equals(generatorName)
+                    && !"com.red5pro.media.storage.azure.AzureFilenameGenerator".equals(generatorName)) {
                 log.debug("Cloud plugin not enabled");
                 out.write(JSON_END);
                 return;
@@ -272,7 +280,8 @@ public class M3U8ListingServlet extends HttpServlet {
                             Resource res = resources[i];
                             String uri = res.getURI().toString();
                             String url = uri.substring(uri.lastIndexOf("streams/") + 8);
-                            out.write(String.format(JSON_ENTRY_TEMPLATE, res.getFilename(), res.lastModified(), res.contentLength(), url).getBytes());
+                            out.write(String.format(JSON_ENTRY_TEMPLATE, res.getFilename(), res.lastModified(), res.contentLength(), url)
+                                    .getBytes());
                             // comma or not to comma that is the question
                             if (i < (resources.length - 1)) {
                                 out.write(COMMA);
@@ -290,7 +299,8 @@ public class M3U8ListingServlet extends HttpServlet {
                     log.debug("Using absolute path");
                     try {
                         IContext context = appScope.getContext();
-                        String searchPattern = String.format("file:%s%s/*.m3u8", streamsBaseDirectory, ("/".equals(pathInfo) ? "/**" : pathInfo));
+                        String searchPattern = String.format("file:%s%s/*.m3u8", streamsBaseDirectory,
+                                ("/".equals(pathInfo) ? "/**" : pathInfo));
                         log.debug("Search pattern: {}", searchPattern);
                         Resource[] resources = context.getResources(searchPattern);
                         log.debug("Local Resources {}", Arrays.toString(resources));
@@ -298,7 +308,8 @@ public class M3U8ListingServlet extends HttpServlet {
                             Resource res = resources[i];
                             String uri = res.getURI().toString();
                             String url = uri.substring(uri.lastIndexOf("streams/"));
-                            out.write(String.format(JSON_ENTRY_TEMPLATE, res.getFilename(), res.lastModified(), res.contentLength(), url).getBytes());
+                            out.write(String.format(JSON_ENTRY_TEMPLATE, res.getFilename(), res.lastModified(), res.contentLength(), url)
+                                    .getBytes());
                             // comma or not to comma that is the question
                             if (i < (resources.length - 1)) {
                                 out.write(COMMA);
@@ -328,7 +339,9 @@ public class M3U8ListingServlet extends HttpServlet {
                     int length = resources.size();
                     for (int i = 0; i < length; i++) {
                         Resource res = resources.get(i);
-                        out.write(String.format(JSON_ENTRY_TEMPLATE, res.getFilename(), res.lastModified(), res.contentLength(), res.getURL()).getBytes());
+                        out.write(
+                                String.format(JSON_ENTRY_TEMPLATE, res.getFilename(), res.lastModified(), res.contentLength(), res.getURL())
+                                        .getBytes());
                         // comma or not to comma that is the question
                         if (i < (length - 1)) {
                             out.write(COMMA);
@@ -353,7 +366,9 @@ public class M3U8ListingServlet extends HttpServlet {
                     int length = resources.size();
                     for (int i = 0; i < length; i++) {
                         Resource res = resources.get(i);
-                        out.write(String.format(JSON_ENTRY_TEMPLATE, res.getFilename(), res.lastModified(), res.contentLength(), res.getURL()).getBytes());
+                        out.write(
+                                String.format(JSON_ENTRY_TEMPLATE, res.getFilename(), res.lastModified(), res.contentLength(), res.getURL())
+                                        .getBytes());
                         // comma or not to comma that is the question
                         if (i < (length - 1)) {
                             out.write(COMMA);
@@ -376,7 +391,9 @@ public class M3U8ListingServlet extends HttpServlet {
                     int length = resources.size();
                     for (int i = 0; i < length; i++) {
                         Resource res = resources.get(i);
-                        out.write(String.format(JSON_ENTRY_TEMPLATE, res.getFilename(), res.lastModified(), res.contentLength(), res.getURL()).getBytes());
+                        out.write(
+                                String.format(JSON_ENTRY_TEMPLATE, res.getFilename(), res.lastModified(), res.contentLength(), res.getURL())
+                                        .getBytes());
                         // comma or not to comma that is the question
                         if (i < (length - 1)) {
                             out.write(COMMA);

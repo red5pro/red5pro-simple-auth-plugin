@@ -64,7 +64,8 @@ public class HTTPAuthenticator extends SimpleAuthAuthenticatorAdapter {
             try {
                 HttpSession session = (HttpSession) connection;
                 // lookup any existing wrapper for this session
-                HTTPSessionWrapperConnection sessionWrapper = (HTTPSessionWrapperConnection) session.getAttribute(ConnectionAttributeKey.CONNECTION_TAG.value);
+                HTTPSessionWrapperConnection sessionWrapper = (HTTPSessionWrapperConnection) session
+                        .getAttribute(ConnectionAttributeKey.CONNECTION_TAG.value);
                 if (sessionWrapper == null) {
                     sessionWrapper = new HTTPSessionWrapperConnection(session);
                 }
@@ -84,7 +85,8 @@ public class HTTPAuthenticator extends SimpleAuthAuthenticatorAdapter {
                         if (permissions == null) {
                             session.setAttribute(ConnectionAttributeKey.PERMISSIONS.value, "authorization_completed");
                         } else {
-                            session.setAttribute(ConnectionAttributeKey.PERMISSIONS.value, String.format("%s,authorization_completed", permissions));
+                            session.setAttribute(ConnectionAttributeKey.PERMISSIONS.value,
+                                    String.format("%s,authorization_completed", permissions));
                         }
                     }
                 }
