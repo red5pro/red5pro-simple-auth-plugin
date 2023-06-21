@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 	<groupId>com.red5pro</groupId>
 	<artifactId>red5pro-simple-auth</artifactId>
-	<version>10.9.5</version>
+	<version>11.0.0</version>
 	<packaging>jar</packaging>
 	<name>red5pro-simple-auth-plugin</name>
 	<url>https://github.com/red5pro/red5pro-simple-auth-plugin</url>
