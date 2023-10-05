@@ -31,7 +31,10 @@ import java.io.IOException;
 import java.util.Enumeration;
 import java.util.Properties;
 
+import org.apache.commons.lang3.StringUtils;
+import org.red5.server.api.IConnection;
 import org.red5.server.api.IContext;
+import org.red5.server.api.Red5;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -162,6 +165,20 @@ public class Red5ProFileAuthenticationValidator implements IAuthenticationValida
             if (logger.isDebugEnabled()) {
                 logger.debug("Authenticating connection for username " + username + " and password " + password);
             }
+
+            // get the connection
+            IConnection connection = Red5.getConnectionLocal();
+            // check for blank and/or "undefined"
+            if (StringUtils.isBlank(username) || StringUtils.isBlank(password) || "undefined".equals(username)
+                    || "undefined".equals(password)) {
+                logger.error("One or more missing parameter(s). Parameter 'username' and/or 'password' not provided");
+                return false;
+            }
+            // just store parameters as we will be using these later
+            connection.setAttribute("username", username);
+            connection.setAttribute("password", password);
+            logger.debug("Parameters 'username' and 'password' stored on client connection! {}", connection);
+
             if (authInformation.containsKey(username)) {
                 String pass = String.valueOf(authInformation.getProperty(username));
                 if (pass.equalsIgnoreCase(password)) {
