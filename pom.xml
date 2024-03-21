@@ -37,7 +37,7 @@
 		<java.release.level>11</java.release.level>
 		<maven.build.timestamp.format>MM.dd.yyyy HH:mm</maven.build.timestamp.format>
 		<timestamp>${maven.build.timestamp}</timestamp>
-		<red5pro-common.version>10.9.0.16</red5pro-common.version>
+		<red5pro-common.version>12.5.0.2</red5pro-common.version>
 		<red5.version>1.3.16</red5.version>
 		<mina.version>2.0.23</mina.version>
 		<spring.version>5.3.24</spring.version>
