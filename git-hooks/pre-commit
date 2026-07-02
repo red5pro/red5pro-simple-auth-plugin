@@ -1,4 +1,0 @@
-#!/bin/sh
-
-./scripts/license_inject.sh
-exit 0
